@@ -1,0 +1,516 @@
+:root {
+    --accent: #5c6ac4;
+    --bg: #f8f9fc;
+    --text: #222;
+    --panel: #fff;
+    --border-light: #e0e0e0;
+    --ai-bg: #eef0f6;
+    --user-bg: #d1d5f0;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* General Header Styles (from dashboard.html, forum.html, module.html) */
+.app-header {
+    background: var(--panel);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    flex-shrink: 0; /* Prevent shrinking in flex layouts */
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.app-header .nav-buttons button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+/* Dashboard Styles */
+.dashboard-container {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-sidebar {
+    flex: 1 1 280px;
+    background: var(--panel);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+.dashboard-main {
+    flex: 3 1 600px;
+    background: var(--panel);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+.dashboard-sidebar h2, .dashboard-main h2 {
+    margin-top: 0;
+}
+.dashboard-main h2 {
+    color: var(--accent); /* Added for consistency with module page */
+}
+
+
+.profile-details p {
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.profile-details strong {
+    color: var(--accent);
+}
+
+.profile-details .label {
+    font-weight: normal;
+    color: #555;
+    display: block;
+    font-size: 0.9em;
+    margin-bottom: 0.1em;
+}
+
+.module-list {
+    list-style: none;
+    padding: 0;
+}
+
+.module-list li {
+    margin: .5rem 0;
+    padding: .5rem;
+    border-left: 4px solid var(--accent);
+    background: #f1f2f8;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.module-list li:hover {
+    background-color: #e6e8f2;
+}
+
+.module-list li a {
+    text-decoration: none;
+    color: var(--text);
+    display: block;
+    font-weight: 500;
+}
+
+.module-list li a:hover {
+    color: var(--accent);
+}
+.module-list li.locked a {
+    color: #999;
+    pointer-events: none;
+    cursor: default;
+}
+
+.module-list li.locked {
+    border-left-color: #ccc;
+    background-color: #f9f9f9;
+}
+
+
+.badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    padding: .25rem .5rem;
+    border-radius: 4px;
+    font-size: .75rem;
+    margin-right: .25rem;
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-sidebar button, .dashboard-sidebar .sidebar-link-btn {
+    margin-top: 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    display: block;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+.dashboard-sidebar .sidebar-link-btn:hover { background-color: #4a55a1; }
+
+.dashboard-main button.schedule-btn {
+    background: #e0e0e0;
+    color: var(--text);
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.dashboard-section {
+    margin-bottom: 2rem;
+}
+
+@media(max-width:768px) {
+    .dashboard-container {
+        flex-direction: column;
+    }
+}
+
+/* User Profile (Wizard) Styles */
+.wizard-container {
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.wizard-container h1 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.chat-container {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    background: #f9f9f9;
+}
+
+.chat-message {
+    padding: .5rem .75rem;
+    border-radius: 10px;
+    margin-bottom: .5rem;
+    max-width: 85%;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.chat-message.ai {
+    background-color: var(--ai-bg);
+    margin-right: auto;
+    border-bottom-left-radius: 0;
+}
+
+.chat-message.user {
+    background-color: var(--user-bg);
+    margin-left: auto;
+    text-align: right;
+    border-bottom-right-radius: 0;
+}
+
+.chat-input-area {
+    display: flex;
+    margin-bottom: 1rem;
+}
+
+.chat-input-area input {
+    flex-grow: 1;
+    padding: .5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px;
+    margin-bottom: 0;
+}
+
+.chat-input-area button { /* send-btn specific */
+    border-radius: 0 4px 4px 0;
+}
+
+.btn { /* General button style from wizard */
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: .75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn.secondary {
+    background: #ccc;
+    color: #000;
+    margin-left: 0.5rem;
+}
+
+.wizard-actions { /* Formerly .actions in wizard */
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.profile-summary-container {
+    /* display: none; by default handled by React */
+    margin-top: 1.5rem;
+}
+
+.profile-summary-content {
+    background: #f4f4f4;
+    padding: 1rem;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.9em;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.wizard-action-buttons { /* Formerly .action-buttons */
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+/* Forum Styles */
+.forum-layout {
+    display: flex;
+    margin: 1rem;
+    gap: 1rem;
+    height: calc(100vh - 70px - 2rem); /* header height (approx 70px) + top/bottom margin */
+    max-height: calc(100vh - 70px - 2rem);
+}
+
+.topic-sidebar {
+    flex: 0 0 280px;
+    background: var(--panel);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    overflow-y: auto;
+}
+
+.topic-sidebar h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 0.5rem;
+}
+
+.topic-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.topic-list li {
+    padding: 0.75rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.topic-list li:hover,
+.topic-list li.active {
+    background-color: var(--accent);
+    color: white;
+}
+
+.thread-main {
+    flex-grow: 1;
+    background: var(--panel);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.thread-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.thread-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.thread-header button { /* create new thread button */
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.thread-list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.thread-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.thread-item {
+    padding: 1rem;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    background-color: #fdfdfd;
+    transition: background-color 0.2s;
+}
+
+.thread-item:hover {
+    background-color: #f0f2f5;
+}
+
+.thread-item h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    color: var(--accent);
+}
+
+.thread-meta {
+    font-size: 0.8rem;
+    color: #777;
+}
+
+.thread-meta span {
+    margin-right: 10px;
+}
+
+.new-thread-form {
+    /* display: none; by default handled by React */
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    background-color: #f9f9f9;
+}
+
+.new-thread-form h3 {
+    margin-top: 0;
+}
+
+.new-thread-form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.new-thread-form input,
+.new-thread-form textarea {
+    width: calc(100% - 1.2rem); /* Account for padding */
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Ensure padding doesn't increase width */
+}
+
+
+.new-thread-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.new-thread-form button { /* General buttons within the form */
+    margin-right: 0.5rem;
+}
+/* Use .btn and .btn.secondary for form buttons for consistency */
+
+
+/* Module Page Styles */
+.module-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--panel);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+.module-container h2 { /* Module content title */
+    margin-top: 0;
+    color: var(--accent);
+}
+
+.module-container h3 {
+    margin-top: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    background: #000;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.reference-list {
+    list-style: disc;
+    padding-left: 20px;
+}
+
+.reference-list li {
+    margin-bottom: 0.5rem;
+}
+
+.reference-list a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.reference-list a:hover {
+    text-decoration: underline;
+}
+
+.key-topics-list {
+    list-style: square;
+    padding-left: 20px;
+}
+
+.key-topics-list li {
+    margin-bottom: 0.3rem;
+}
