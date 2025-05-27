@@ -1,36 +1,59 @@
 // src/contexts/UserProfileContext.js
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 
 const UserProfileContext = createContext();
 
 export const useUserProfile = () => useContext(UserProfileContext);
 
-const API_BASE_URL = "http://localhost:8000/api"; // Your backend API URL
-
-// For now, let's assume a fixed user_id for demonstration.
-// In a real app, this would come from an authentication system.
-const DEMO_USER_ID = "learner123";
+const API_BASE_URL = "http://localhost:8000/api";
 
 export const UserProfileProvider = ({ children }) => {
     const [userProfile, setUserProfileState] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user, logout } = useAuth();
+
+    const handleUnauthorized = useCallback(() => {
+        console.log('Unauthorized access, logging out');
+        logout();
+    }, [logout]);
 
     const fetchUserProfile = useCallback(async (userId) => {
+        if (!userId) {
+            setUserProfileState(null);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/profile/${userId}`);
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                handleUnauthorized();
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/profile/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
             if (response.ok) {
                 const data = await response.json();
-                setUserProfileState(data); // Data from backend includes user_id as _id
+                setUserProfileState(data);
+            } else if (response.status === 401) {
+                handleUnauthorized();
             } else if (response.status === 404) {
-                setUserProfileState(null); // Profile doesn't exist yet
-            } else {
-                const errData = await response.json();
-                console.error("Error fetching user profile:", errData.detail || response.statusText);
-                setError(errData.detail || "Failed to fetch profile");
                 setUserProfileState(null);
+            } else {
+                const errData = await response.json().catch(() => ({ detail: "Failed to parse error response" }));
+                console.error(`Error fetching user profile (${response.status}):`, errData.detail || response.statusText);
+                setError(errData.detail || `Failed to fetch profile (status ${response.status})`);
+                setUserProfileState(null); // CRITICAL: Set profile to null on error
             }
         } catch (err) {
             console.error("Network error fetching user profile:", err);
@@ -39,31 +62,50 @@ export const UserProfileProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [handleUnauthorized]);
 
     useEffect(() => {
-        fetchUserProfile(DEMO_USER_ID);
-    }, [fetchUserProfile]);
+        if (user) {
+            fetchUserProfile(user.id);
+        } else {
+            setUserProfileState(null);
+            setLoading(false);
+        }
+    }, [user, fetchUserProfile]);
 
     const saveUserProfile = async (profileDataToSave) => {
+        if (!user) {
+            setError("No authenticated user");
+            return null;
+        }
+
         setLoading(true);
         setError(null);
-        // The backend expects the profile data without the user_id in the body
-        const { user_id, ...payload } = profileDataToSave; // user_id might be our _id from DB
-        const effectiveUserId = user_id || DEMO_USER_ID;
+        const { user_id, ...payload } = profileDataToSave;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/profile/${effectiveUserId}`, {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                handleUnauthorized();
+                return null;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/profile/${user.id}`, {
                 method: 'PUT',
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload),
             });
+
             if (response.ok) {
                 const savedData = await response.json();
-                setUserProfileState(savedData); // Update context with saved data (includes _id as user_id)
+                setUserProfileState(savedData);
                 return savedData;
+            } else if (response.status === 401) {
+                handleUnauthorized();
+                return null;
             } else {
                 const errData = await response.json();
                 console.error("Error saving user profile:", errData.detail || response.statusText);
@@ -79,15 +121,15 @@ export const UserProfileProvider = ({ children }) => {
         }
     };
 
-    const logoutUser = () => {
-        // In a real app with backend auth, you'd call a logout endpoint.
-        // For now, just clear local state. The profile itself remains in the DB.
-        setUserProfileState(null);
-        // localStorage.removeItem('someAuthToken'); // If you were using tokens
-    };
-
     return (
-        <UserProfileContext.Provider value={{ userProfile, saveUserProfile, logoutUser, loading, error, fetchUserProfile, currentUserId: DEMO_USER_ID }}>
+        <UserProfileContext.Provider value={{
+            userProfile,
+            saveUserProfile,
+            loading,
+            error,
+            fetchUserProfile,
+            currentUserId: user?.id
+        }}>
             {children}
         </UserProfileContext.Provider>
     );

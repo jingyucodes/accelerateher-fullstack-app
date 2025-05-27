@@ -1,22 +1,38 @@
-from fastapi import FastAPI, HTTPException, Path, Body, status
+from fastapi import FastAPI, HTTPException, Path, Body, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+from datetime import datetime, timezone, timedelta
+from jose import JWTError, jwt
 from typing import Optional
 import logging
-from datetime import datetime, timezone # For adding a timestamp
-
-from models import UserProfileSchema, UserProfileInDB
-from database import user_profiles_collection, get_db_client, close_db_client
+import os
+from dotenv import load_dotenv
+from models import UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, ForumPost
+from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_username, create_user, get_user_by_id
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__) # Use 'main' or __name__ for the logger
 
+load_dotenv()
+
+# Security configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")  # In production, use a proper secret key
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 app = FastAPI(title="AccelerateHer User Profile API")
 
 # CORS (Cross-Origin Resource Sharing)
 origins = [
-    "http://localhost:5173", # Your Vite React frontend
-    "http://localhost:3000", # Common port for Create React App
+    "http://localhost:5173",  # Local development
+    "http://localhost:3000",  # Local development alternative port
+    "https://your-frontend-domain.com",  # Your deployed frontend URL
+    "*"  # Allow all origins (only for development, remove in production)
 ]
 
 app.add_middleware(
@@ -73,89 +89,162 @@ async def shutdown_db_client():
     await close_db_client()
     logger.info("MongoDB connection closed.")
 
-# --- MODIFIED PUT ENDPOINT ---
-@app.put("/api/profile/{user_id}", response_model=UserProfileInDB, status_code=status.HTTP_200_OK)
-async def upsert_user_profile(
-    user_id: str = Path(..., title="The ID of the user to create/update"),
-    profile_data: UserProfileSchema = Body(...)
-):
-    logger.info(f"PUT /api/profile/{user_id} - Upserting profile.")
-    logger.debug(f"PUT /api/profile/{user_id} - Received profile_data: {profile_data.model_dump()}")
-    
-    profile_dict = profile_data.model_dump(exclude_unset=True) # Get only fields that were sent
-    logger.debug(f"PUT /api/profile/{user_id} - Profile dictionary to $set (after exclude_unset): {profile_dict}")
+# Authentication helper functions
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-    # If profile_dict is empty after exclude_unset, MongoDB might not create a meaningful document,
-    # or it might just create one with _id. To ensure some data is written on creation if
-    # the payload was all defaults that got excluded:
-    if not profile_dict and not await user_profiles_collection.find_one({"_id": user_id}):
-        logger.warning(f"PUT /api/profile/{user_id} - Profile dictionary for $set is empty and profile does not exist. Setting a creation timestamp.")
-        # Forcing a field to ensure document creation if it's a new profile with empty data
-        profile_dict_to_set = {"_created_at_on_empty_upsert": datetime.now(timezone.utc)}
-        # You could also set all default values from UserProfileSchema if desired
-        # profile_dict_to_set = profile_data.model_dump() # This would include defaults
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
     else:
-        profile_dict_to_set = profile_dict
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
-    if not profile_dict_to_set and await user_profiles_collection.find_one({"_id": user_id}):
-        logger.info(f"PUT /api/profile/{user_id} - Profile exists and payload to set is empty. No update will occur beyond _id match.")
-        # In this case, we can just fetch and return the existing one, as $set with empty dict does nothing.
-        # However, motor's update_one with upsert=True should still report matched_count=1 if it exists.
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = await get_user_by_username(username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+# Authentication endpoints
+@app.post("/api/auth/signup", response_model=UserResponse)
+async def signup(user_data: UserCreate):
+    # Check if username already exists
+    existing_user = await get_user_by_username(user_data.username)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # Create new user
+    hashed_password = get_password_hash(user_data.password)
+    user_doc = {
+        "username": user_data.username,
+        "email": user_data.email,
+        "hashed_password": hashed_password,
+        "created_at": datetime.utcnow()
+    }
+    
+    created_user = await create_user(user_doc)
+    if not created_user:
+        raise HTTPException(status_code=500, detail="Failed to create user")
+
+    # Create a default user profile
+    user_id_str = str(created_user["_id"])
+    default_profile_data = {
+        "user_id": user_id_str,
+        "name": created_user["username"],  # Or some default name
+        "bio": "",
+        "interests": [],
+        "goals": [],
+        "completed_modules": [],
+        "points": 0,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Attempt to add the profile to the user_profiles collection
+    # The UserProfile model in models.py expects '_id' as the primary key
+    # but we are linking via user_id. The upsert endpoint /api/profile/{user_id} uses _id for user_profiles.
+    # For consistency and to avoid confusion, let's ensure the document _id for user_profiles collection is the user_id.
+    
+    # We'll use the existing add_user_profile function which expects a dict.
+    # It internally handles inserting into user_profiles_collection.
+    # The key for user_profiles in DB is `_id` which will store the `user_id_str`.
+    
+    profile_to_insert = default_profile_data.copy()
+    profile_to_insert["_id"] = user_id_str # Set the document _id to be the user_id
 
     try:
-        update_result = await user_profiles_collection.update_one(
-            {"_id": user_id},
-            {"$set": profile_dict_to_set}, # Use the potentially modified dict
-            upsert=True
+        await add_user_profile(profile_to_insert)
+        logger.info(f"Default profile created for user_id: {user_id_str}")
+    except Exception as e:
+        # Log the error, but don't fail the signup if profile creation fails.
+        # The user can try to update their profile later.
+        logger.error(f"Failed to create default profile for user_id {user_id_str}: {e}")
+
+    return UserResponse(
+        id=user_id_str,
+        username=created_user["username"],
+        email=created_user["email"],
+        created_at=created_user["created_at"]
+    )
+
+@app.post("/api/auth/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await get_user_by_username(form_data.username)
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        logger.info(f"PUT /api/profile/{user_id} - MongoDB update_one result: matched_count={update_result.matched_count}, modified_count={update_result.modified_count}, upserted_id={update_result.upserted_id}")
-
-    except Exception as e_update:
-        logger.error(f"PUT /api/profile/{user_id} - Exception during MongoDB update_one: {e_update}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error saving profile to database.")
-
-    if not (update_result.matched_count > 0 or update_result.upserted_id):
-        # This case means MongoDB didn't match an existing document and also didn't insert a new one.
-        # This is unusual with upsert=True unless the $set operation was truly empty and it's an update.
-        logger.error(f"PUT /api/profile/{user_id} - Failed to upsert profile. No match or upsert indicated by MongoDB result.")
-        # For a PUT, if upsert was intended, this should ideally not happen if an ID is provided.
-        # It might be better to return a 500 if the DB operation didn't behave as expected.
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Profile could not be saved (no match or upsert).")
-
-    # Fetch the (potentially updated or newly created) document to return it
-    logger.debug(f"PUT /api/profile/{user_id} - Attempting to retrieve profile after upsert...")
-    created_or_updated_profile_doc = await user_profiles_collection.find_one({"_id": user_id})
-
-    if created_or_updated_profile_doc:
-        logger.info(f"PUT /api/profile/{user_id} - Successfully retrieved profile after upsert. Returning document.")
-        return UserProfileInDB(**created_or_updated_profile_doc)
-    else:
-        # This is the problematic 404 source for PUT
-        logger.error(f"PUT /api/profile/{user_id} - CRITICAL: Could not retrieve profile for user_id: {user_id} immediately after successful-looking upsert. This should not happen.")
-        # This indicates a more severe issue if the upsert reported success but find_one fails.
-        # Perhaps a read-after-write consistency issue (unlikely on M0 for this simple case) or DB error.
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Profile operation inconsistency for user {user_id}.")
-
-
-@app.get("/api/profile/{user_id}", response_model=UserProfileInDB)
-async def get_user_profile(user_id: str = Path(..., title="The ID of the user to retrieve")):
-    logger.info(f"GET /api/profile/{user_id} - Fetching profile.")
-    if not app.mongodb_client: # Check if client is available
-        logger.error(f"GET /api/profile/{user_id} - MongoDB client not initialized.")
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database service not available.")
     
-    try:
-        profile_doc = await user_profiles_collection.find_one({"_id": user_id})
-    except Exception as e_find:
-        logger.error(f"GET /api/profile/{user_id} - Exception during MongoDB find_one: {e_find}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error retrieving profile from database.")
-
-    if profile_doc:
-        logger.info(f"GET /api/profile/{user_id} - Profile found.")
-        return UserProfileInDB(**profile_doc)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
     
-    logger.warning(f"GET /api/profile/{user_id} - Profile not found.")
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User profile with ID {user_id} not found")
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user["_id"]),
+            "username": user["username"],
+            "email": user["email"]
+        }
+    }
+
+# Protected routes
+@app.get("/api/profile/{user_id}")
+async def get_profile(user_id: str, current_user: User = Depends(get_current_user)):
+    profile = await get_user_profile(user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+@app.put("/api/profile/{user_id}")
+async def update_profile(
+    user_id: str,
+    profile_data: dict = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    if str(current_user["_id"]) != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile")
+    
+    updated_profile = await update_user_profile(user_id, profile_data)
+    if updated_profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return updated_profile
+
+# Forum routes (protected)
+@app.get("/api/forum/posts")
+async def get_posts(current_user: User = Depends(get_current_user)):
+    return await get_forum_posts()
+
+@app.post("/api/forum/posts")
+async def create_post(
+    post_data: ForumPost,
+    current_user: User = Depends(get_current_user)
+):
+    post_data.user_id = str(current_user["_id"])
+    return await add_forum_post(post_data.model_dump(by_alias=True))
 
 @app.get("/")
 async def read_root():

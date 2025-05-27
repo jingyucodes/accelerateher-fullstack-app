@@ -1,17 +1,10 @@
 // src/pages/DashboardPage.jsx
-import React, { useEffect } from 'react'; // Removed useState if not directly used for local state
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserProfile } from '../contexts/UserProfileContext';
-import Header from '../components/Header'; // Assuming Header component exists
+import Header from '../components/Header';
 
-// ProfileDetailItem and ModuleListItem components can be moved to their own files or kept here
-const ProfileDetailItem = ({ label, value }) => ( /* ... same ... */
-    <p>
-        <span className="label">{label}:</span> <strong>{value || 'Not specified'}</strong>
-    </p>
-);
-
-const ModuleListItem = ({ href, text, locked = false, inProgress = false, completed = false }) => { /* ... same ... */
+const ModuleListItem = ({ href, text, locked = false, inProgress = false, completed = false }) => {
     let statusText = '';
     if (inProgress) statusText = ' (in progress)';
     if (completed) statusText = ' ✅';
@@ -24,9 +17,8 @@ const ModuleListItem = ({ href, text, locked = false, inProgress = false, comple
     );
 };
 
-
 const DashboardPage = () => {
-    const { userProfile, loading, error, fetchUserProfile, currentUserId } = useUserProfile(); // Get fetch function and userId
+    const { userProfile, loading, error, fetchUserProfile, currentUserId } = useUserProfile();
     const navigate = useNavigate();
     
     // Local state for dashboard specific dynamic content based on profile
@@ -41,11 +33,9 @@ const DashboardPage = () => {
         }
     }, [userProfile, loading, fetchUserProfile, currentUserId]);
 
-
     useEffect(() => {
         if (userProfile) {
             // Logic to determine active path, recommended skills, weekly commitment
-            // This is the same logic as before, just ensure userProfile is not null
             const goals = userProfile.futureSkills ? userProfile.futureSkills.toLowerCase() : "";
             let currentPath = { title: 'Python for Data Analysis', progress: '40% complete', modules: [
                 { id: 'python_fundamentals', text: 'Module 1: Python Fundamentals', completed: true },
@@ -113,64 +103,154 @@ const DashboardPage = () => {
 
     if (loading) return <div style={{padding: "20px"}}>Loading dashboard...</div>;
     if (error) return <div style={{padding: "20px"}}>Error: {error}. Please try <button onClick={() => fetchUserProfile(currentUserId)}>refreshing</button> or go to <Link to="/profile">profile setup</Link>.</div>;
-    if (!userProfile) return <div style={{padding: "20px"}}>No profile data. Redirecting to profile setup...</div>; // Should be redirected by useEffect
+    if (!userProfile) return <div style={{padding: "20px"}}>No profile data. Redirecting to profile setup...</div>;
 
     return (
         <>
             <Header pageTitle={`Welcome back, ${userProfile.name || 'Learner'}!`} />
-            <div className="dashboard-container">
-                <aside className="dashboard-sidebar">
-                    <h2>Your Profile</h2>
-                    <div className="profile-details">
-                        <ProfileDetailItem label="Name" value={userProfile.name} />
-                        <ProfileDetailItem label="Future Goals" value={userProfile.futureSkills} />
-                        <ProfileDetailItem label="Current Skills" value={userProfile.currentSkills} />
-                        <ProfileDetailItem label="Preferred Learning Style" value={userProfile.preferredLearningStyle} />
-                        <ProfileDetailItem label="Learning Preferences" value={userProfile.learningPreferences} />
-                        <ProfileDetailItem label="End Goal & Motivation" value={userProfile.endGoalMotivation} />
-                        <ProfileDetailItem label="Notifications" value={userProfile.notificationsPreference} />
+            <div className="dashboard-new-container">
+                {/* Quick Stats Row */}
+                <div className="dashboard-stats-row">
+                    <div className="stat-card">
+                        <div className="stat-icon">📚</div>
+                        <div className="stat-content">
+                            <div className="stat-number">{activePath.modules.filter(m => m.completed).length}</div>
+                            <div className="stat-label">Modules Completed</div>
+                        </div>
                     </div>
-                    <button onClick={() => navigate('/profile')}>Edit Profile & Goals</button>
-                    <Link to="/forum" className="sidebar-link-btn">Community Forum</Link>
-                </aside>
-
-                <main className="dashboard-main">
-                    <section className="dashboard-section">
-                        <h2>Active Learning Path</h2>
-                        <p>
-                            <strong>{activePath.title}</strong> <span className="badge">{activePath.progress}</span>
-                        </p>
-                        <ul className="module-list">
-                            {activePath.modules.map(module => (
-                                <ModuleListItem 
-                                    key={module.id} 
-                                    href={`/module/${module.id}`} 
-                                    text={module.text} 
-                                    locked={module.locked}
-                                    inProgress={module.inProgress}
-                                    completed={module.completed}
-                                />
-                            ))}
-                        </ul>
-                    </section>
-
-                    <section className="dashboard-section">
-                        <h2>Weekly Commitment</h2>
-                        <p dangerouslySetInnerHTML={{ __html: weeklyCommitment }} />
-                        {/* Ensure weeklyCommitment is sanitized if it could ever contain user input */}
-                        <button className="schedule-btn" onClick={() => alert('Scheduling UI TBD')}>Schedule Now</button>
-                    </section>
                     
-                    <section className="dashboard-section">
-                        <h2>Recommended Next Skills</h2>
-                        <div>
-                            {recommendedSkills.length > 0 
-                                ? recommendedSkills.map(skill => <p key={skill} className="badge">{skill}</p>)
-                                : <p className="badge">Explore based on your goals!</p>
-                            }
+                    <div className="stat-card">
+                        <div className="stat-icon">🎯</div>
+                        <div className="stat-content">
+                            <div className="stat-number">{activePath.progress}</div>
+                            <div className="stat-label">Current Progress</div>
+                        </div>
+                    </div>
+                    
+                    <div className="stat-card">
+                        <div className="stat-icon">⏰</div>
+                        <div className="stat-content">
+                            <div className="stat-number">{userProfile.timeCommitment?.match(/\d+/)?.[0] || '0'}h</div>
+                            <div className="stat-label">Weekly Goal</div>
+                        </div>
+                    </div>
+                    
+                    <div className="stat-card">
+                        <div className="stat-icon">🏆</div>
+                        <div className="stat-content">
+                            <div className="stat-number">{recommendedSkills.length}</div>
+                            <div className="stat-label">Skills to Learn</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Content Grid */}
+                <div className="dashboard-grid">
+                    {/* Active Learning Path - Takes up more space */}
+                    <section className="dashboard-card main-card">
+                        <div className="card-header">
+                            <h2>🚀 Active Learning Path</h2>
+                            <button 
+                                className="secondary-btn"
+                                onClick={() => navigate('/profile')}
+                            >
+                                Change Path
+                            </button>
+                        </div>
+                        <div className="learning-path-content">
+                            <div className="path-title">
+                                <h3>{activePath.title}</h3>
+                                <span className="progress-badge">{activePath.progress}</span>
+                            </div>
+                            <ul className="module-list-new">
+                                {activePath.modules.map(module => (
+                                    <ModuleListItem 
+                                        key={module.id} 
+                                        href={`/module/${module.id}`} 
+                                        text={module.text} 
+                                        locked={module.locked}
+                                        inProgress={module.inProgress}
+                                        completed={module.completed}
+                                    />
+                                ))}
+                            </ul>
                         </div>
                     </section>
-                </main>
+
+                    {/* Weekly Commitment */}
+                    <section className="dashboard-card">
+                        <div className="card-header">
+                            <h2>📅 This Week</h2>
+                        </div>
+                        <div className="weekly-content">
+                            <p dangerouslySetInnerHTML={{ __html: weeklyCommitment }} />
+                            <div className="progress-bar">
+                                <div className="progress-fill" style={{width: '30%'}}></div>
+                            </div>
+                            <p className="progress-text">3 of 10 hours completed this week</p>
+                            <button 
+                                className="primary-btn"
+                                onClick={() => alert('Scheduling UI TBD')}
+                            >
+                                Schedule Learning Time
+                            </button>
+                        </div>
+                    </section>
+                    
+                    {/* Recommended Skills */}
+                    <section className="dashboard-card">
+                        <div className="card-header">
+                            <h2>💡 Recommended Skills</h2>
+                        </div>
+                        <div className="skills-content">
+                            <p>Based on your learning goals:</p>
+                            <div className="skills-grid">
+                                {recommendedSkills.length > 0 
+                                    ? recommendedSkills.map(skill => (
+                                        <div key={skill} className="skill-badge">{skill}</div>
+                                    ))
+                                    : <div className="skill-badge">Explore based on your goals!</div>
+                                }
+                            </div>
+                            <button 
+                                className="secondary-btn"
+                                onClick={() => navigate('/profile-details')}
+                            >
+                                View Full Profile
+                            </button>
+                        </div>
+                    </section>
+
+                    {/* Quick Actions */}
+                    <section className="dashboard-card">
+                        <div className="card-header">
+                            <h2>⚡ Quick Actions</h2>
+                        </div>
+                        <div className="quick-actions">
+                            <button 
+                                className="action-btn"
+                                onClick={() => navigate('/forum')}
+                            >
+                                <span className="action-icon">💬</span>
+                                Community Forum
+                            </button>
+                            <button 
+                                className="action-btn"
+                                onClick={() => navigate('/profile')}
+                            >
+                                <span className="action-icon">✏️</span>
+                                Update Goals
+                            </button>
+                            <button 
+                                className="action-btn"
+                                onClick={() => alert('Achievements coming soon!')}
+                            >
+                                <span className="action-icon">🏅</span>
+                                View Achievements
+                            </button>
+                        </div>
+                    </section>
+                </div>
             </div>
         </>
     );

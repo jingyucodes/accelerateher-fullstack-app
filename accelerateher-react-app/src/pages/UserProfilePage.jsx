@@ -1,295 +1,460 @@
 // src/pages/UserProfilePage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUserProfile } from '../contexts/UserProfileContext'; // Ensure this path is correct
+import { useUserProfile } from '../contexts/UserProfileContext';
 
 const ChatMessage = ({ text, sender }) => (
     <div className={`chat-message ${sender}`}>{text}</div>
 );
 
 const UserProfilePage = () => {
-    // Use userProfile from context for existing data, saveUserProfile for saving
     const { userProfile: initialProfileData, saveUserProfile, loading: contextLoading, error: contextError, currentUserId } = useUserProfile();
     const navigate = useNavigate();
     const chatContainerRef = useRef(null);
+    const userInputRef = useRef(null);
+    const hasInitialized = useRef(false);
+    const hasAskedQuestion = useRef(false);
+    const hasGeneratedPath = useRef(false);
+    const hasShownReview = useRef(false);
 
     const [messages, setMessages] = useState([]);
     const [userInput, setUserInput] = useState('');
-    const [conversationState, setConversationState] = useState('INITIAL_LOAD'); // Start with initial load
+    const [conversationState, setConversationState] = useState('GREETING');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    
-    // Initialize structuredProfile. If initialProfileData exists, use it, else default.
-    const [structuredProfile, setStructuredProfile] = useState({
-        name: 'Learner', futureSkills: '', currentSkills: '',
-        preferredLearningStyle: '', timeCommitment: '', learningPreferences: '',
-        endGoalMotivation: '', notificationsPreference: ''
-    });
-
-    const [profileSummary, setProfileSummary] = useState('');
-    const [showSummary, setShowSummary] = useState(false);
     const [inputDisabled, setInputDisabled] = useState(true);
     const [showFinalizeBtn, setShowFinalizeBtn] = useState(false);
-    const [showPathNowBtn, setShowPathNowBtn] = useState(false);
     const [showChatInputArea, setShowChatInputArea] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false); // Local processing state for chat flow
+    const [profileSummary, setProfileSummary] = useState('');
+    const [showSummary, setShowSummary] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [freeFormMessages, setFreeFormMessages] = useState([]);
+    const [missingFields, setMissingFields] = useState([]);
 
-    const questions = [ /* ... questions array remains the same ... */
-        { key: 'futureSkills', text: "To start, what is your primary learning goal or what new skills are you hoping to acquire? (e.g., career advancement in cloud, learn Python for data analysis, become a full-stack developer)" },
-        { key: 'currentSkills', text: "Could you describe your current technical skills or knowledge level, particularly those relevant to your goals? (e.g., Python basics, some SQL knowledge, familiar with AWS S3, complete beginner)" },
-        { key: 'preferredLearningStyle', text: "What's your preferred way to learn? (e.g., video tutorials, reading articles, hands-on projects, a mix)" },
-        { key: 'timeCommitment', text: "How many hours per week can you realistically dedicate to learning?" },
-        { key: 'learningPreferences', text: "Are there specific types of content or activities you find most engaging or helpful? (e.g., industry case studies, coding exercises, live lectures, quick tips, quizzes)" },
-        { key: 'endGoalMotivation', text: "What's the ultimate end goal you hope to achieve with this learning, and what's your main motivation? (e.g., get a promotion, build a specific project, career change, personal growth)" },
-        { key: 'notificationsPreference', text: "Okay, almost done! Would you like to receive email notifications to remind you about your progress and upcoming tasks? (Yes/No)" }
+    const [structuredProfile, setStructuredProfile] = useState({
+        name: '',
+        futureSkills: '',
+        currentSkills: '',
+        preferredLearningStyle: '',
+        timeCommitment: '',
+        learningPreferences: '',
+        endGoalMotivation: '',
+        notificationsPreference: ''
+    });
+
+    const questions = [
+        { key: 'name', text: "What should I call you? (Your name or preferred nickname)" },
+        { key: 'futureSkills', text: "What specific skills or technologies are you hoping to learn? (e.g., Python, cloud computing, web development)" },
+        { key: 'currentSkills', text: "What's your current technical background or experience level?" },
+        { key: 'preferredLearningStyle', text: "How do you prefer to learn? (e.g., videos, hands-on projects, reading, interactive tutorials)" },
+        { key: 'timeCommitment', text: "How many hours per week can you dedicate to learning?" },
+        { key: 'learningPreferences', text: "What types of learning activities engage you most? (e.g., coding exercises, case studies, quizzes)" },
+        { key: 'endGoalMotivation', text: "What's your ultimate goal with this learning? (e.g., career change, promotion, personal interest)" },
+        { key: 'notificationsPreference', text: "Would you like to receive email notifications for your learning progress? (Yes/No)" }
     ];
 
-
-    const addMessage = (text, sender) => {
+    const addMessage = useCallback((text, sender) => {
         setMessages(prev => [...prev, { text, sender, timestamp: Date.now() }]);
-    };
+    }, []);
 
+    const delay = useCallback((ms) => new Promise(resolve => setTimeout(resolve, ms)), []);
+
+    // AI-like text analysis to extract profile information
+    const extractProfileInfo = useCallback((userMessages) => {
+        const allText = userMessages.join(' ').toLowerCase();
+        const extracted = {};
+
+        // Extract name (look for "I'm", "my name is", "call me", etc.)
+        const namePatterns = [
+            /(?:i'm|i am|my name is|call me|i go by)\s+([a-zA-Z]+)/i,
+            /^([a-zA-Z]+)(?:\s|$)/i // First word if it looks like a name
+        ];
+        for (const pattern of namePatterns) {
+            const match = allText.match(pattern);
+            if (match && match[1] && match[1].length > 1) {
+                extracted.name = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                break;
+            }
+        }
+
+        // Extract future skills/learning goals
+        const skillKeywords = ['learn', 'study', 'master', 'understand', 'get into', 'interested in', 'want to', 'goal', 'hoping to'];
+        const techKeywords = ['python', 'javascript', 'java', 'react', 'node', 'cloud', 'aws', 'azure', 'data science', 'machine learning', 'ai', 'web development', 'mobile', 'ios', 'android', 'devops', 'cybersecurity', 'blockchain'];
+
+        for (const keyword of skillKeywords) {
+            if (allText.includes(keyword)) {
+                for (const tech of techKeywords) {
+                    if (allText.includes(tech)) {
+                        if (!extracted.futureSkills) extracted.futureSkills = '';
+                        if (!extracted.futureSkills.includes(tech)) {
+                            extracted.futureSkills += (extracted.futureSkills ? ', ' : '') + tech;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Extract current skills/experience
+        const experienceKeywords = ['experience', 'background', 'know', 'familiar', 'worked with', 'used', 'beginner', 'intermediate', 'advanced', 'expert', 'new to', 'started'];
+        for (const keyword of experienceKeywords) {
+            if (allText.includes(keyword)) {
+                const sentences = userMessages.join(' ').split(/[.!?]/);
+                for (const sentence of sentences) {
+                    if (sentence.toLowerCase().includes(keyword)) {
+                        if (!extracted.currentSkills) {
+                            extracted.currentSkills = sentence.trim();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Extract learning preferences
+        const learningKeywords = ['prefer', 'like', 'enjoy', 'best way', 'learn by', 'hands-on', 'video', 'reading', 'tutorial', 'project'];
+        for (const keyword of learningKeywords) {
+            if (allText.includes(keyword)) {
+                const sentences = userMessages.join(' ').split(/[.!?]/);
+                for (const sentence of sentences) {
+                    if (sentence.toLowerCase().includes(keyword)) {
+                        if (!extracted.preferredLearningStyle) {
+                            extracted.preferredLearningStyle = sentence.trim();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Extract time commitment
+        const timePatterns = [
+            /(\d+)\s*(?:hours?|hrs?)\s*(?:per|a|each)?\s*week/i,
+            /(\d+)\s*(?:hours?|hrs?)\s*(?:daily|per day)/i
+        ];
+        for (const pattern of timePatterns) {
+            const match = allText.match(pattern);
+            if (match) {
+                extracted.timeCommitment = match[0];
+                break;
+            }
+        }
+
+        // Extract motivation/goals
+        const motivationKeywords = ['career', 'job', 'promotion', 'change', 'switch', 'goal', 'dream', 'want to become', 'aspire'];
+        for (const keyword of motivationKeywords) {
+            if (allText.includes(keyword)) {
+                const sentences = userMessages.join(' ').split(/[.!?]/);
+                for (const sentence of sentences) {
+                    if (sentence.toLowerCase().includes(keyword)) {
+                        if (!extracted.endGoalMotivation) {
+                            extracted.endGoalMotivation = sentence.trim();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return extracted;
+    }, []);
+
+    const findMissingFields = useCallback((profile) => {
+        const required = ['name', 'futureSkills', 'currentSkills', 'preferredLearningStyle', 'timeCommitment', 'endGoalMotivation', 'notificationsPreference'];
+        return required.filter(field => !profile[field] || profile[field].trim() === '');
+    }, []);
+
+    const compileProfileDataForDisplay = useCallback((profile) => {
+        let output = "--- YOUR PROFILE ---\n";
+        output += `Name: ${profile.name || 'Not specified'}\n`;
+        output += `Learning Goal: ${profile.futureSkills || 'Not specified'}\n`;
+        output += `Current Knowledge: ${profile.currentSkills || 'Not specified'}\n`;
+        output += `Learning Style: ${profile.preferredLearningStyle || 'Not specified'}\n`;
+        output += `Time Commitment: ${profile.timeCommitment || 'Not specified'}\n`;
+        output += `Learning Preferences: ${profile.learningPreferences || 'Not specified'}\n`;
+        output += `Goals & Motivation: ${profile.endGoalMotivation || 'Not specified'}\n`;
+        output += `Notifications: ${profile.notificationsPreference || 'Not specified'}\n`;
+        return output;
+    }, []);
+
+    const suggestLearningPath = useCallback((profile) => {
+        let path = "";
+        const goal = profile.futureSkills?.toLowerCase() || "";
+        if (goal.includes("cloud") || goal.includes("azure") || goal.includes("aws") || goal.includes("gcp")) {
+            path += "Course to start with: Introduction to Cloud Computing (e.g., Cloud Practitioner Essentials / AZ-900)\n";
+        } else if (goal.includes("python")) {
+            path += "Course to start with: Python for Absolute Beginners\n";
+        } else if (goal.includes("web develop") || goal.includes("javascript") || goal.includes("react")) {
+            path += "Course to start with: HTML, CSS, and JavaScript Fundamentals\n";
+        } else if (goal.includes("data science") || goal.includes("machine learning")) {
+            path += "Course to start with: Introduction to Data Science with Python\n";
+        } else {
+            path += "Course to start with: Foundational Course in Your Area of Interest\n";
+        }
+        path += "\n(This is a personalized recommendation based on your profile!)";
+        return path;
+    }, []);
+
+    // Auto-scroll chat
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages]);
 
-    // Functions compileProfileDataForDisplay and suggestLearningPath remain the same
-    const compileProfileDataForDisplay = (profile) => { /* ... same ... */
-        let output = "--- YOUR PROFILE ---\n";
-        output += `Name: ${profile.name || 'Learner'}\n`;
-        output += `Learning Goal (Future Skills): ${profile.futureSkills || 'Not specified'}\n`;
-        output += `Current Knowledge Level (Current Skills): ${profile.currentSkills || 'Not specified'}\n`;
-        output += `Preferred Learning Style: ${profile.preferredLearningStyle || 'Not specified'}\n`;
-        output += `Time Commitment: ${profile.timeCommitment || 'Not specified'}\n`;
-        output += `Learning Preferences: ${profile.learningPreferences || 'Not specified'}\n`;
-        output += `End Goal & Motivation: ${profile.endGoalMotivation || 'Not specified'}\n`;
-        output += `Notifications: ${profile.notificationsPreference || 'Not specified'}\n`;
-        return output;
-    };
-    const suggestLearningPath = (profile) => { /* ... same ... */
-        let path = "";
-        const goal = profile.futureSkills?.toLowerCase() || "";
-        if (goal.includes("cloud") || goal.includes("azure") || goal.includes("aws") || goal.includes("gcp")) {
-            if (goal.includes("security")) {
-                path += "Course to start with: Cloud Security Fundamentals (e.g., AZ-900 Azure Fundamentals then focus on security modules)\n";
-                path += "Next suggested course: [Vendor-Specific] Security Associate (e.g., AZ-500, AWS Security Specialty)\n";
-            } else {
-                path += "Course to start with: Introduction to Cloud Computing (e.g., Cloud Practitioner Essentials / AZ-900)\n";
-                path += "Next suggested course: Solutions Architect Associate (AWS) or Azure Administrator (AZ-104)\n";
-            }
-        } else if (goal.includes("python")) {
-            path += "Course to start with: Python for Absolute Beginners\n";
-            if (goal.includes("data")) {
-                path += "Next suggested course: Data Analysis with Pandas & NumPy\n";
-            } else {
-                path += "Next suggested course: Object-Oriented Programming in Python\n";
-            }
-        } else if (goal.includes("web develop")) {
-            path += "Course to start with: HTML, CSS, and JavaScript Fundamentals\n";
-            path += "Next suggested course: Frontend Framework (e.g., React, Vue) or Backend Development (e.g., Node.js, Python/Django)\n";
-        } else {
-            path += "Course to start with: Foundational Course in Your Area of Interest.\n";
-        }
-        if (!path.trim()) {
-             path = "We recommend starting with foundational courses related to your learning goal.\n";
-        }
-        path += "\n(Remember, this is a sample path. Our platform offers many modules!)";
-        return path;
-    };
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    // Effect to handle initial loading of profile from context
+    // Initialize conversation
     useEffect(() => {
-        if (conversationState === 'INITIAL_LOAD' && !contextLoading) {
-            if (initialProfileData) {
-                // Profile exists, populate and go to review
-                console.log("Existing profile found in context:", initialProfileData);
-                // The backend returns _id, but our Pydantic model on frontend might expect user_id if aliased
-                // For structuredProfile, we don't need user_id/ _id as it's managed by context
-                const { user_id, _id, ...profileFields } = initialProfileData;
-                setStructuredProfile(prev => ({...prev, ...profileFields}));
-
-                const pOutput = compileProfileDataForDisplay(initialProfileData);
-                const pSuggest = suggestLearningPath(initialProfileData);
-                setProfileSummary(pOutput + "\n\n--- SUGGESTED LEARNING PATH ---\n" + pSuggest);
-                setShowSummary(true);
-                setConversationState('PATH_REVIEW'); // Go to review state
-            } else {
-                // No profile exists, start onboarding
-                console.log("No existing profile, starting GREETING.");
-                setConversationState('GREETING');
-            }
-        }
-    }, [conversationState, contextLoading, initialProfileData]);
-
-
-    // Effect to manage conversation flow
-    useEffect(() => {
-        const manageConversation = async () => {
-            if (isProcessing || conversationState === 'INITIAL_LOAD') return;
-            setIsProcessing(true);
-            setInputDisabled(true);
-            await delay(300);
-
-            if (conversationState === 'GREETING') {
-                addMessage("I'm your Learning Platform Assistant...", 'ai'); // Shortened for brevity
-                setConversationState('ASKING_QUESTIONS');
-            } else if (conversationState === 'ASKING_QUESTIONS') {
-                if (currentQuestionIndex < questions.length) {
-                    addMessage(questions[currentQuestionIndex].text, 'ai');
-                    setInputDisabled(false);
-                    if (currentQuestionIndex > 0) setShowPathNowBtn(true);
-                } else {
-                    setConversationState('GENERATING_PATH');
-                }
-            } else if (conversationState === 'GENERATING_PATH') {
-                setShowPathNowBtn(false);
-                addMessage("Okay, I'll prepare your learning path...", 'ai');
+        if (!contextLoading && conversationState === 'GREETING' && !hasInitialized.current) {
+            hasInitialized.current = true;
+            const initConversation = async () => {
+                setInputDisabled(true);
+                await delay(500);
+                addMessage("Hi! I'm your Learning Platform Assistant. I'll help you create your personalized learning profile.", 'ai');
                 await delay(1000);
+                addMessage("Instead of going through a rigid questionnaire, I'd love to hear about your learning journey in your own words!", 'ai');
+                await delay(800);
+                addMessage("Tell me about yourself - what you want to learn, your background, your goals, or anything else you think is relevant. I'll listen and ask follow-up questions if needed.", 'ai');
+                await delay(500);
+                setConversationState('FREE_FORM_CHAT');
+                setInputDisabled(false);
+            };
+            initConversation();
+        }
+    }, [contextLoading, conversationState, addMessage, delay]);
+
+    // Handle free-form chat
+    const handleFreeFormResponse = useCallback(async (userMessage) => {
+        const newFreeFormMessages = [...freeFormMessages, userMessage];
+        setFreeFormMessages(newFreeFormMessages);
+
+        // Extract information from all messages so far
+        const extractedInfo = extractProfileInfo(newFreeFormMessages);
+        setStructuredProfile(prev => ({ ...prev, ...extractedInfo }));
+
+        // Provide encouraging responses
+        const responses = [
+            "That's great! Tell me more about your learning journey.",
+            "Interesting! What else would you like me to know?",
+            "Thanks for sharing! Is there anything else about your goals or background?",
+            "I'm getting a good picture of what you're looking for. Anything else to add?",
+            "Perfect! Any other details about your learning preferences or timeline?"
+        ];
+
+        await delay(800);
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        addMessage(randomResponse, 'ai');
+        await delay(500);
+        addMessage("When you're ready, type 'done' or 'that's all' to move forward, or keep sharing!", 'ai');
+        setInputDisabled(false);
+    }, [freeFormMessages, extractProfileInfo, addMessage, delay]);
+
+    // Handle transition to specific questions
+    const handleTransitionToQuestions = useCallback(async () => {
+        setInputDisabled(true);
+        await delay(500);
+        addMessage("Thank you for sharing! Let me analyze what you've told me...", 'ai');
+        await delay(1500);
+
+        const missing = findMissingFields(structuredProfile);
+        setMissingFields(missing);
+
+        if (missing.length === 0) {
+            addMessage("Great! I have all the information I need. Let me prepare your learning path!", 'ai');
+            setConversationState('GENERATING_PATH');
+        } else {
+            addMessage(`I have most of the information, but I'd like to ask a few specific questions to complete your profile. Just ${missing.length} more question${missing.length > 1 ? 's' : ''}!`, 'ai');
+            await delay(800);
+            setConversationState('ASKING_SPECIFIC_QUESTIONS');
+            setCurrentQuestionIndex(0);
+        }
+    }, [structuredProfile, findMissingFields, addMessage, delay]);
+
+    // Handle specific questions for missing fields
+    useEffect(() => {
+        if (conversationState === 'ASKING_SPECIFIC_QUESTIONS' && currentQuestionIndex < missingFields.length) {
+            const questionKey = `${currentQuestionIndex}-${missingFields[currentQuestionIndex]}`;
+            if (!hasAskedQuestion.current || hasAskedQuestion.current !== questionKey) {
+                hasAskedQuestion.current = questionKey;
+                const askSpecificQuestion = async () => {
+                    await delay(500);
+                    const fieldKey = missingFields[currentQuestionIndex];
+                    const question = questions.find(q => q.key === fieldKey);
+                    if (question) {
+                        addMessage(question.text, 'ai');
+                        setInputDisabled(false);
+                    }
+                };
+                askSpecificQuestion();
+            }
+        } else if (conversationState === 'ASKING_SPECIFIC_QUESTIONS' && currentQuestionIndex >= missingFields.length) {
+            setConversationState('GENERATING_PATH');
+        }
+    }, [conversationState, currentQuestionIndex, missingFields, questions, addMessage, delay]);
+
+    // Handle path generation
+    useEffect(() => {
+        if (conversationState === 'GENERATING_PATH' && !hasGeneratedPath.current) {
+            hasGeneratedPath.current = true;
+            const generatePath = async () => {
+                setInputDisabled(true);
+                await delay(800);
+                addMessage("Perfect! Based on everything you've shared, I'll create your personalized learning path...", 'ai');
+                await delay(1500);
+
                 const pOutput = compileProfileDataForDisplay(structuredProfile);
                 const pSuggest = suggestLearningPath(structuredProfile);
                 setProfileSummary(pOutput + "\n\n--- SUGGESTED LEARNING PATH ---\n" + pSuggest);
                 setShowSummary(true);
                 setConversationState('PATH_REVIEW');
-            } else if (conversationState === 'PATH_REVIEW') {
-                addMessage("Here's your profile summary and a suggested learning path...", 'ai');
+            };
+            generatePath();
+        }
+    }, [conversationState, structuredProfile, compileProfileDataForDisplay, suggestLearningPath, addMessage, delay]);
+
+    // Handle path review
+    useEffect(() => {
+        if (conversationState === 'PATH_REVIEW' && !hasShownReview.current) {
+            hasShownReview.current = true;
+            const showReview = async () => {
+                await delay(500);
+                addMessage("Here's your complete profile and personalized learning path! Review it and click 'Start Learning' when you're ready to begin your journey.", 'ai');
                 setShowFinalizeBtn(true);
                 setShowChatInputArea(false);
-                setInputDisabled(true);
-            }
-            // FINALIZED state is handled by handleFinalize directly
-            setIsProcessing(false);
-        };
-        manageConversation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [conversationState, currentQuestionIndex]); // Rerun when state or question index changes
-
+            };
+            showReview();
+        }
+    }, [conversationState, addMessage, delay]);
 
     const handleSend = () => {
-        const text = userInput.trim();
-        if (isProcessing || conversationState !== 'ASKING_QUESTIONS') return;
+        if (inputDisabled || !userInput.trim()) return;
 
-        if (!text && currentQuestionIndex > 0 && text.toLowerCase() !== 'stop') {
-             alert('Please provide an answer or type "stop".');
-             return;
-        }
+        const text = userInput.trim();
         addMessage(text, 'user');
         setUserInput('');
+        setInputDisabled(true);
 
-        if (text.toLowerCase() === 'stop') {
-            setConversationState('GENERATING_PATH');
-            return;
+        if (conversationState === 'FREE_FORM_CHAT') {
+            // Check if user wants to finish free-form chat
+            const finishKeywords = ['done', "that's all", 'finished', 'ready', 'move on', 'next', 'continue'];
+            const isFinishing = finishKeywords.some(keyword => text.toLowerCase().includes(keyword));
+
+            if (isFinishing) {
+                handleTransitionToQuestions();
+            } else {
+                handleFreeFormResponse(text);
+            }
+        } else if (conversationState === 'ASKING_SPECIFIC_QUESTIONS') {
+            // Save the answer to the specific question
+            const fieldKey = missingFields[currentQuestionIndex];
+            setStructuredProfile(prev => ({
+                ...prev,
+                [fieldKey]: text
+            }));
+
+            // Move to next question
+            setCurrentQuestionIndex(prev => prev + 1);
         }
-        
-        // Special handling for user asking a question
-        if (text.includes('?') && text.length > 10 && !text.toLowerCase().startsWith("yes") && !text.toLowerCase().startsWith("no")) {
-            addMessage("That's an interesting question! For now, let's focus on building your profile. So, regarding the previous question...", 'ai');
-            // Re-trigger asking the same question by just setting state without advancing index
-            // The useEffect will pick up the 'ASKING_QUESTIONS' state and re-render the current question
-            setConversationState('ASKING_QUESTIONS_REPROMPT'); // Temporary state to force re-render
-            setTimeout(() => setConversationState('ASKING_QUESTIONS'), 50); // Then back to normal
-            return; 
-       }
-
-
-        const currentQ = questions[currentQuestionIndex];
-        if (currentQ) {
-            setStructuredProfile(prev => ({ ...prev, [currentQ.key]: text }));
-        }
-        setCurrentQuestionIndex(prev => prev + 1);
     };
 
-    const handleKeyPress = (e) => { /* ... same ... */
-        if (e.key === 'Enter' && !inputDisabled && !isProcessing) {
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
     };
-    
-    const handleShowPathNow = () => { /* ... same ... */
-        if (isProcessing) return;
-        setConversationState('GENERATING_PATH');
-    };
 
     const handleFinalize = async (e) => {
         e.preventDefault();
-        if (isProcessing) return;
-        setIsProcessing(true); // To disable button during save
+        setIsProcessing(true);
+        addMessage("Saving your profile and setting up your learning journey...", 'ai');
 
-        if (!structuredProfile.futureSkills && !structuredProfile.currentSkills) {
-             if(!window.confirm("Your profile seems quite empty. Are you sure you want to proceed?")){
-                 setIsProcessing(false);
-                 return;
-             }
+        try {
+            const profileToSave = { ...structuredProfile };
+            Object.keys(profileToSave).forEach(key => {
+                if (profileToSave[key] === 'Not specified') {
+                    profileToSave[key] = '';
+                }
+            });
+
+            const result = await saveUserProfile({
+                ...profileToSave,
+                user_id: currentUserId
+            });
+
+            if (result) {
+                addMessage("Excellent! Your profile has been saved. Welcome to your personalized learning journey!", 'ai');
+                await delay(1500);
+                navigate('/dashboard');
+            } else {
+                addMessage("There was an issue saving your profile. Please try again.", 'ai');
+            }
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            addMessage("Sorry, there was an error saving your profile. Please try again.", 'ai');
+        } finally {
+            setIsProcessing(false);
         }
-        
-        const profileToSave = { ...structuredProfile };
-        // user_id (currentUserId) is handled by saveUserProfile context function
-
-        const savedProfile = await saveUserProfile(profileToSave);
-
-        if (savedProfile) {
-            addMessage("Your profile has been saved! Redirecting to dashboard...", "ai");
-            await delay(1500);
-            navigate('/dashboard');
-        } else {
-            addMessage("There was an error saving your profile. Please try again.", "ai");
-            // Optionally, re-enable finalize button or provide more specific error
-        }
-        setIsProcessing(false);
     };
 
-    if (contextLoading && conversationState === 'INITIAL_LOAD') {
-        return <div>Loading your profile...</div>;
+    if (contextLoading) {
+        return <div className="loading-container">Loading your profile...</div>;
     }
-    if (contextError && conversationState === 'INITIAL_LOAD') {
-        return <div>Error loading profile: {contextError}. Try refreshing.</div>;
+
+    if (contextError) {
+        return <div className="error-container">Error loading profile: {contextError}. Try refreshing.</div>;
     }
 
     return (
         <div className="wizard-container">
-            <h1>{initialProfileData ? "Edit Your Learning Profile" : "Create Your Learning Profile"}</h1>
-            <form onSubmit={handleFinalize}>
-                <div id="chat-container" ref={chatContainerRef}>
-                    {messages.map((msg) => (
-                        <ChatMessage key={msg.timestamp + msg.sender + msg.text.slice(0,5)} text={msg.text} sender={msg.sender} />
-                    ))}
-                </div>
-
-                {showChatInputArea && (
-                    <div className="chat-input-area">
-                        <input
-                            type="text"
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Type your response, or 'stop'..."
-                            disabled={inputDisabled || isProcessing}
-                            autoComplete="off"
-                        />
-                        <button type="button" onClick={handleSend} disabled={inputDisabled || isProcessing} className="btn">Send</button>
-                    </div>
-                )}
-
+            <div className="chat-container" ref={chatContainerRef}>
+                {messages.map((msg, idx) => (
+                    <ChatMessage key={idx} text={msg.text} sender={msg.sender} />
+                ))}
                 {showSummary && (
                     <div className="profile-summary-container">
-                        <h2>Your Profile & Suggested Path</h2>
-                        <div className="profile-summary-content" style={{whiteSpace: 'pre-wrap'}}>{profileSummary}</div>
+                        <div className="profile-summary-content">
+                            {profileSummary.split('\n').map((line, i) => (
+                                <p key={i}>{line}</p>
+                            ))}
+                        </div>
                     </div>
                 )}
-                
-                <div className="wizard-action-buttons">
-                    {showPathNowBtn && (
-                         <button type="button" onClick={handleShowPathNow} className="btn secondary" disabled={isProcessing}>Show My Path Now</button>
-                    )}
-                    {showFinalizeBtn && (
-                        <button type="submit" className="btn" disabled={isProcessing || contextLoading}>
-                            {contextLoading ? "Saving..." : (initialProfileData ? "Update Profile & Go to Dashboard" : "Finalize Profile & Go to Dashboard")}
-                        </button>
-                    )}
+            </div>
+
+            {showChatInputArea && (
+                <div className="chat-input-area">
+                    <input
+                        ref={userInputRef}
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        disabled={inputDisabled}
+                        placeholder={
+                            inputDisabled
+                                ? "Please wait..."
+                                : conversationState === 'FREE_FORM_CHAT'
+                                    ? "Tell me about your learning goals, background, preferences..."
+                                    : "Type your response..."
+                        }
+                    />
+                    <button
+                        onClick={handleSend}
+                        disabled={inputDisabled}
+                    >
+                        Send
+                    </button>
                 </div>
-            </form>
+            )}
+
+            {showFinalizeBtn && (
+                <div className="wizard-action-buttons">
+                    <button
+                        onClick={handleFinalize}
+                        disabled={isProcessing}
+                    >
+                        {isProcessing ? "Saving..." : "Start Learning Journey"}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
