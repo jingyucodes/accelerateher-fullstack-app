@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import Header from '../components/Header';
 
 const SignupPage = () => {
     const [username, setUsername] = useState('');
@@ -25,7 +24,7 @@ const SignupPage = () => {
         if (clearAuthError) clearAuthError();
 
         if (!username.trim()) {
-            setLocalError('Username is required.');
+            setLocalError('User ID is required.');
             return;
         }
 
@@ -52,76 +51,61 @@ const SignupPage = () => {
         const success = await signup(username, password);
 
         if (success) {
-            navigate('/profile');
+            navigate('/dashboard');
         } else {
-            console.log('Signup failed:', authContextError);
+            // Error is handled by AuthContext, but localError can also be set if needed
+            // console.log('Signup failed on page:', authContextError);
         }
     };
 
     return (
-        <>
-            <Header pageTitle="Create Account" />
-            <div className="wizard-container">
-                <h1>Create Account</h1>
-                <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#666' }}>
+        <div className="login-page-container-right-form">
+            <div className="login-form-wrapper-dbs-style">
+                <div className="login-logo-placeholder" style={{ textAlign: 'center' }}>
+                    <h2>Create Account</h2>
+                </div>
+                <p style={{ textAlign: 'center', marginBottom: '25px', color: '#666', fontSize: '0.9rem' }}>
                     Join our community and start your learning journey
                 </p>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-                            Username
-                        </label>
+                <form onSubmit={handleSubmit} className="login-form-dbs">
+                    <div className="form-group-dbs">
+                        <label htmlFor="username">User ID</label>
                         <input
                             id="username"
                             name="username"
                             type="text"
                             required
                             autoComplete="username"
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '4px',
-                                fontSize: '1rem'
-                            }}
-                            placeholder="Enter your username"
+                            placeholder="Enter your User ID"
                             value={username}
                             onChange={(e) => { setUsername(e.target.value); setLocalError(''); if (clearAuthError) clearAuthError(); }}
                         />
                     </div>
 
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-                            Password
-                        </label>
+                    <div className="form-group-dbs">
+                        <label htmlFor="password">Password</label>
                         <input
                             id="password"
                             name="password"
                             type="password"
                             required
                             autoComplete="new-password"
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '4px',
-                                fontSize: '1rem'
-                            }}
                             placeholder="Create a password"
                             value={password}
                             onChange={(e) => { setPassword(e.target.value); setLocalError(''); if (clearAuthError) clearAuthError(); }}
                         />
                         <div style={{
-                            fontSize: '0.85rem',
-                            color: '#666',
-                            marginTop: '0.5rem',
-                            padding: '0.5rem',
-                            backgroundColor: '#f8f8f8',
-                            borderRadius: '4px'
+                            fontSize: '0.8rem',
+                            color: '#6c757d',
+                            marginTop: '8px',
+                            padding: '8px 12px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '4px',
+                            border: '1px solid #e9ecef'
                         }}>
                             Password must:
-                            <ul style={{ paddingLeft: '1.2rem', marginTop: '0.3rem' }}>
+                            <ul style={{ paddingLeft: '1.2rem', marginBlockStart: '0.5em', marginBlockEnd: '0.5em' }}>
                                 <li>Be at least 6 characters long</li>
                                 <li>Contain at least one letter</li>
                                 <li>Contain at least one number</li>
@@ -129,23 +113,14 @@ const SignupPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label htmlFor="confirm-password" style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-                            Confirm Password
-                        </label>
+                    <div className="form-group-dbs">
+                        <label htmlFor="confirm-password">Confirm Password</label>
                         <input
                             id="confirm-password"
                             name="confirm-password"
                             type="password"
                             required
                             autoComplete="new-password"
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '4px',
-                                fontSize: '1rem'
-                            }}
                             placeholder="Confirm your password"
                             value={confirmPassword}
                             onChange={(e) => { setConfirmPassword(e.target.value); setLocalError(''); if (clearAuthError) clearAuthError(); }}
@@ -153,14 +128,7 @@ const SignupPage = () => {
                     </div>
 
                     {(localError || authContextError) && (
-                        <div style={{
-                            padding: '0.75rem',
-                            marginBottom: '1rem',
-                            backgroundColor: '#fff3f3',
-                            border: '1px solid #ffa7a7',
-                            borderRadius: '4px',
-                            color: '#d63031'
-                        }}>
+                        <div className="login-error-dbs">
                             {localError || authContextError}
                         </div>
                     )}
@@ -168,25 +136,20 @@ const SignupPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn"
-                        style={{
-                            width: '100%',
-                            background: 'var(--accent)',
-                            marginBottom: '1rem'
-                        }}
+                        className="btn-login-dbs"
                     >
                         {loading ? 'Creating account...' : 'Create Account'}
                     </button>
 
-                    <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem' }}>
                         Already have an account?{' '}
-                        <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                        <Link to="/login" className="login-create-account-link">
                             Sign in
                         </Link>
                     </p>
                 </form>
             </div>
-        </>
+        </div>
     );
 };
 

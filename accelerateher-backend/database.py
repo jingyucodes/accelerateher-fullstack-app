@@ -59,18 +59,18 @@ async def create_user(user_data: dict):
         logger.error(f"Error creating user: {e}")
         return None
 
-async def get_user_by_username(username: str):
+async def get_user_by_user_id(user_id_val: str):
     try:
-        return await users_collection.find_one({"username": username})
+        return await users_collection.find_one({"user_id": user_id_val})
     except Exception as e:
-        logger.error(f"Error getting user by username: {e}")
+        logger.error(f"Error getting user by user_id '{user_id_val}': {e}")
         return None
 
-async def get_user_by_id(user_id: str):
+async def get_user_by_id(mongo_db_id: str):
     try:
-        return await users_collection.find_one({"_id": ObjectId(user_id)})
+        return await users_collection.find_one({"_id": ObjectId(mongo_db_id)})
     except Exception as e:
-        logger.error(f"Error getting user by id: {e}")
+        logger.error(f"Error getting user by MongoDB _id '{mongo_db_id}': {e}")
         return None
 
 # User profile operations

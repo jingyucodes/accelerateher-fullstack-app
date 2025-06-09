@@ -25,7 +25,10 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!userProfile && !error) {
+  // Don't redirect to profile if we're already on the profile page
+  // or if there's an error - let the page handle it
+  const currentPath = window.location.pathname;
+  if (!userProfile && !error && currentPath !== '/profile') {
     return <Navigate to="/profile" replace />;
   }
 

@@ -20,11 +20,13 @@ const ModuleListItem = ({ href, text, locked = false, inProgress = false, comple
 const DashboardPage = () => {
     const { userProfile, loading, error, fetchUserProfile, currentUserId } = useUserProfile();
     const navigate = useNavigate();
-    
-    // Local state for dashboard specific dynamic content based on profile
-    const [activePath, setActivePath] = React.useState({ title: '', modules: [], progress: '' });
+
+    const [activePath, setActivePath] = React.useState(null);
     const [recommendedSkills, setRecommendedSkills] = React.useState([]);
     const [weeklyCommitment, setWeeklyCommitment] = React.useState('');
+    const [isNewUser, setIsNewUser] = React.useState(false);
+    const [weeklyHours, setWeeklyHours] = React.useState(0);
+    const [completedHours, setCompletedHours] = React.useState(0);
 
     useEffect(() => {
         // If profile isn't loaded yet (e.g., direct navigation to dashboard), try fetching
@@ -35,75 +37,66 @@ const DashboardPage = () => {
 
     useEffect(() => {
         if (userProfile) {
-            // Logic to determine active path, recommended skills, weekly commitment
-            const goals = userProfile.futureSkills ? userProfile.futureSkills.toLowerCase() : "";
-            let currentPath = { title: 'Python for Data Analysis', progress: '40% complete', modules: [
-                { id: 'python_fundamentals', text: 'Module 1: Python Fundamentals', completed: true },
-                { id: 'numpy_essentials', text: 'Module 2: NumPy Essentials', completed: true },
-                { id: 'pandas_core', text: 'Module 3: Pandas Core', inProgress: true },
-                { id: 'data_visualization', text: 'Module 4: Data Visualization', locked: true },
-            ]};
-            let recSkills = [];
-            let recommendationsMade = false;
-
-            if (goals.includes("cloud") || goals.includes("azure") || goals.includes("aws")) {
-                currentPath = { title: 'Cloud Computing Foundations', progress: 'New Path!', modules: [
-                    { id: 'cloud_intro', text: 'Module 1: Intro to Cloud Concepts', completed: true },
-                    { id: 'aws_basics', text: 'Module 2: AWS Core Services', inProgress: true },
-                    { id: 'azure_basics', text: 'Module 3: Azure Fundamentals', locked: true },
-                ]};
-                recSkills.push('DevOps Principles');
-                recommendationsMade = true;
-                if (goals.includes("security")) {
-                    recSkills.push('Cloud Security Best Practices');
-                }
-            } else if (goals.includes("python")) {
-                 currentPath = { title: 'Python Programming Path', progress: 'New Path!', modules: [
-                    { id: 'python_fundamentals', text: 'Module 1: Python Basics', completed: true },
-                    { id: 'python_data_structures', text: 'Module 2: Data Structures in Python', inProgress: true },
-                    { id: 'python_oop', text: 'Module 3: Object-Oriented Python', locked: true },
-                 ]};
-                if (goals.includes("data")) {
-                    recSkills.push('NumPy & Pandas', 'Data Visualization');
-                    recommendationsMade = true;
-                } else {
-                    recSkills.push('Web Scraping with Python');
-                    recommendationsMade = true;
-                }
-            } else if (goals.includes("web develop") || goals.includes("full-stack")) {
-                 currentPath = { title: 'Web Development Track', progress: 'New Path!', modules: [
-                    { id: 'html_css_js', text: 'Module 1: HTML, CSS, JavaScript', completed: true },
-                    { id: 'react_basics', text: 'Module 2: React Fundamentals', inProgress: true },
-                    { id: 'nodejs_express', text: 'Module 3: Backend with Node.js', locked: true },
-                 ]};
-                 recSkills.push('Responsive Design', 'API Design');
-                 recommendationsMade = true;
+            // New logic: Check if a learning path is defined in the profile
+            if (userProfile.activeLearningPath) {
+                setActivePath(userProfile.activeLearningPath);
+                setRecommendedSkills(userProfile.recommendedSkills || []);
+                setIsNewUser(false);
+            } else {
+                // This is a new user or a user who hasn't set up their profile yet
+                setIsNewUser(true);
+                setActivePath(null); // Explicitly set no active path
             }
-            
-            if (!recommendationsMade || recSkills.length === 0) {
-                recSkills.push('Git & Version Control', 'Agile Methodologies');
-            }
-            setActivePath(currentPath);
-            setRecommendedSkills(recSkills);
 
             // Weekly Commitment
             if (userProfile.timeCommitment) {
                 const hoursMatch = userProfile.timeCommitment.match(/\d+/);
-                const hours = hoursMatch ? hoursMatch[0] : userProfile.timeCommitment;
-                setWeeklyCommitment(`You planned <strong>${hours}h</strong> this week; (progress TBD)`);
+                const hours = hoursMatch ? parseInt(hoursMatch[0]) : 0;
+                setWeeklyHours(hours);
+
+                // For now, we'll simulate some progress (in a real app, this would come from user activity data)
+                const simulatedCompletedHours = Math.floor(hours * 0.3); // 30% progress as example
+                setCompletedHours(simulatedCompletedHours);
+
+                setWeeklyCommitment(`You planned <strong>${hours}h</strong> this week`);
             } else {
+                setWeeklyHours(0);
+                setCompletedHours(0);
                 setWeeklyCommitment(`Weekly commitment: <strong>Not specified</strong>`);
             }
-
         } else if (!loading && !userProfile && !error) {
             // No profile, and not loading, and no error yet, means 404 or fresh user
-             navigate('/profile'); // Redirect to profile creation if no profile data
+            navigate('/profile'); // Redirect to profile creation if no profile data
         }
     }, [userProfile, loading, error, navigate]);
 
-    if (loading) return <div style={{padding: "20px"}}>Loading dashboard...</div>;
-    if (error) return <div style={{padding: "20px"}}>Error: {error}. Please try <button onClick={() => fetchUserProfile(currentUserId)}>refreshing</button> or go to <Link to="/profile">profile setup</Link>.</div>;
-    if (!userProfile) return <div style={{padding: "20px"}}>No profile data. Redirecting to profile setup...</div>;
+    if (loading) return <div style={{ padding: "20px" }}>Loading dashboard...</div>;
+    if (error) return <div style={{ padding: "20px" }}>Error: {error}. Please try <button onClick={() => fetchUserProfile(currentUserId)}>refreshing</button> or go to <Link to="/profile">profile setup</Link>.</div>;
+    if (!userProfile) return <div style={{ padding: "20px" }}>No profile data. Redirecting to profile setup...</div>;
+
+    // New User Welcome Screen
+    if (isNewUser) {
+        return (
+            <>
+                <Header pageTitle={`Welcome, ${userProfile.name || 'Learner'}!`} />
+                <div className="dashboard-new-container" style={{ textAlign: 'center' }}>
+                    <section className="dashboard-card" style={{ padding: '40px' }}>
+                        <h2>Let's Get Your Learning Journey Started!</h2>
+                        <p style={{ maxWidth: '600px', margin: '20px auto' }}>
+                            Your dashboard is ready. The first step is to tell us about your learning goals so we can build a personalized path for you.
+                        </p>
+                        <button
+                            className="primary-btn"
+                            style={{ fontSize: '1.2rem', padding: '15px 30px' }}
+                            onClick={() => navigate('/profile')}
+                        >
+                            Set Up Your Profile
+                        </button>
+                    </section>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -114,19 +107,19 @@ const DashboardPage = () => {
                     <div className="stat-card">
                         <div className="stat-icon">📚</div>
                         <div className="stat-content">
-                            <div className="stat-number">{activePath.modules.filter(m => m.completed).length}</div>
+                            <div className="stat-number">{activePath?.modules?.filter(m => m.completed).length || 0}</div>
                             <div className="stat-label">Modules Completed</div>
                         </div>
                     </div>
-                    
+
                     <div className="stat-card">
                         <div className="stat-icon">🎯</div>
                         <div className="stat-content">
-                            <div className="stat-number">{activePath.progress}</div>
+                            <div className="stat-number">{activePath?.progress || 'N/A'}</div>
                             <div className="stat-label">Current Progress</div>
                         </div>
                     </div>
-                    
+
                     <div className="stat-card">
                         <div className="stat-icon">⏰</div>
                         <div className="stat-content">
@@ -134,7 +127,7 @@ const DashboardPage = () => {
                             <div className="stat-label">Weekly Goal</div>
                         </div>
                     </div>
-                    
+
                     <div className="stat-card">
                         <div className="stat-icon">🏆</div>
                         <div className="stat-content">
@@ -150,7 +143,7 @@ const DashboardPage = () => {
                     <section className="dashboard-card main-card">
                         <div className="card-header">
                             <h2>🚀 Active Learning Path</h2>
-                            <button 
+                            <button
                                 className="secondary-btn"
                                 onClick={() => navigate('/profile')}
                             >
@@ -159,20 +152,20 @@ const DashboardPage = () => {
                         </div>
                         <div className="learning-path-content">
                             <div className="path-title">
-                                <h3>{activePath.title}</h3>
-                                <span className="progress-badge">{activePath.progress}</span>
+                                <h3>{activePath?.title || "No Path Selected"}</h3>
+                                <span className="progress-badge">{activePath?.progress || "0%"}</span>
                             </div>
                             <ul className="module-list-new">
-                                {activePath.modules.map(module => (
-                                    <ModuleListItem 
-                                        key={module.id} 
-                                        href={`/module/${module.id}`} 
-                                        text={module.text} 
+                                {activePath?.modules?.map(module => (
+                                    <ModuleListItem
+                                        key={module.id}
+                                        href={`/module/${module.id}`}
+                                        text={module.text}
                                         locked={module.locked}
                                         inProgress={module.inProgress}
                                         completed={module.completed}
                                     />
-                                ))}
+                                )) || <li>No modules in the current path.</li>}
                             </ul>
                         </div>
                     </section>
@@ -185,10 +178,17 @@ const DashboardPage = () => {
                         <div className="weekly-content">
                             <p dangerouslySetInnerHTML={{ __html: weeklyCommitment }} />
                             <div className="progress-bar">
-                                <div className="progress-fill" style={{width: '30%'}}></div>
+                                <div
+                                    className="progress-fill"
+                                    style={{
+                                        width: weeklyHours > 0 ? `${(completedHours / weeklyHours) * 100}%` : '0%'
+                                    }}
+                                ></div>
                             </div>
-                            <p className="progress-text">3 of 10 hours completed this week</p>
-                            <button 
+                            <p className="progress-text">
+                                {completedHours} of {weeklyHours} hours completed this week
+                            </p>
+                            <button
                                 className="primary-btn"
                                 onClick={() => alert('Scheduling UI TBD')}
                             >
@@ -196,7 +196,7 @@ const DashboardPage = () => {
                             </button>
                         </div>
                     </section>
-                    
+
                     {/* Recommended Skills */}
                     <section className="dashboard-card">
                         <div className="card-header">
@@ -205,14 +205,14 @@ const DashboardPage = () => {
                         <div className="skills-content">
                             <p>Based on your learning goals:</p>
                             <div className="skills-grid">
-                                {recommendedSkills.length > 0 
+                                {recommendedSkills.length > 0
                                     ? recommendedSkills.map(skill => (
                                         <div key={skill} className="skill-badge">{skill}</div>
                                     ))
                                     : <div className="skill-badge">Explore based on your goals!</div>
                                 }
                             </div>
-                            <button 
+                            <button
                                 className="secondary-btn"
                                 onClick={() => navigate('/profile-details')}
                             >
@@ -227,21 +227,21 @@ const DashboardPage = () => {
                             <h2>⚡ Quick Actions</h2>
                         </div>
                         <div className="quick-actions">
-                            <button 
+                            <button
                                 className="action-btn"
                                 onClick={() => navigate('/forum')}
                             >
                                 <span className="action-icon">💬</span>
                                 Community Forum
                             </button>
-                            <button 
+                            <button
                                 className="action-btn"
                                 onClick={() => navigate('/profile')}
                             >
                                 <span className="action-icon">✏️</span>
                                 Update Goals
                             </button>
-                            <button 
+                            <button
                                 className="action-btn"
                                 onClick={() => alert('Achievements coming soon!')}
                             >

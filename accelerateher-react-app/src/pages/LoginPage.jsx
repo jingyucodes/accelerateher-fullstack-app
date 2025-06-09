@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import Header from '../components/Header';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
@@ -22,6 +21,9 @@ const LoginPage = () => {
         if (!username.trim()) {
             return;
         }
+        if (!password.trim()) {
+            return;
+        }
 
         const success = await login(username, password);
         if (success) {
@@ -30,55 +32,35 @@ const LoginPage = () => {
     };
 
     return (
-        <>
-            <Header pageTitle="Sign In" />
-            <div className="wizard-container">
-                <h1>Sign In</h1>
-                <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#666' }}>
-                    Welcome back! Continue your learning journey
-                </p>
+        <div className="login-page-container-right-form">
+            <div className="login-form-wrapper-dbs-style">
+                <div className="login-logo-placeholder" style={{ textAlign: 'center' }}>
+                    <h2>AccelerateHer</h2>
+                </div>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-                            Username
-                        </label>
+                <form onSubmit={handleSubmit} className="login-form-dbs">
+                    <div className="form-group-dbs">
+                        <label htmlFor="username">Username</label>
                         <input
                             id="username"
                             name="username"
                             type="text"
                             required
                             autoComplete="username"
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '4px',
-                                fontSize: '1rem'
-                            }}
                             placeholder="Enter your username"
                             value={username}
                             onChange={(e) => { setUsername(e.target.value); if (clearAuthError) clearAuthError(); }}
                         />
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-                            Password
-                        </label>
+                    <div className="form-group-dbs">
+                        <label htmlFor="password">Password</label>
                         <input
                             id="password"
                             name="password"
                             type="password"
                             required
                             autoComplete="current-password"
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '4px',
-                                fontSize: '1rem'
-                            }}
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => { setPassword(e.target.value); if (clearAuthError) clearAuthError(); }}
@@ -86,14 +68,7 @@ const LoginPage = () => {
                     </div>
 
                     {authContextError && (
-                        <div style={{
-                            padding: '0.75rem',
-                            marginBottom: '1rem',
-                            backgroundColor: '#fff3f3',
-                            border: '1px solid #ffa7a7',
-                            borderRadius: '4px',
-                            color: '#d63031'
-                        }}>
+                        <div className="login-error-dbs">
                             {authContextError}
                         </div>
                     )}
@@ -101,25 +76,20 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn"
-                        style={{
-                            width: '100%',
-                            background: 'var(--accent)',
-                            marginBottom: '1rem'
-                        }}
+                        className="btn-login-dbs"
                     >
                         {loading ? 'Signing in...' : 'Sign In'}
                     </button>
 
-                    <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem' }}>
                         Don't have an account?{' '}
-                        <Link to="/signup" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                        <Link to="/signup" className="login-create-account-link">
                             Create account
                         </Link>
                     </p>
                 </form>
             </div>
-        </>
+        </div>
     );
 };
 

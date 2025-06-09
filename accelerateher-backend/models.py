@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Optional, Any, ClassVar
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, Any, ClassVar, List
 from datetime import datetime
 from bson import ObjectId
 
@@ -20,8 +20,7 @@ class PyObjectId(ObjectId):
 
 class User(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    username: str
-    email: EmailStr
+    user_id: str
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -32,8 +31,7 @@ class User(BaseModel):
     )
 
 class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
+    user_id: str
     password: str
 
     model_config = ConfigDict(
@@ -50,13 +48,24 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    username: str
-    email: EmailStr
+    user_id: str
     created_at: datetime
 
     model_config = ConfigDict(
         populate_by_name=True
     )
+
+class LearningModule(BaseModel):
+    id: str
+    text: str
+    locked: bool = True
+    inProgress: bool = False
+    completed: bool = False
+
+class LearningPath(BaseModel):
+    title: str
+    progress: str = "0% complete"
+    modules: List[LearningModule] = []
 
 class UserProfile(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
@@ -69,6 +78,8 @@ class UserProfile(BaseModel):
     points: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    activeLearningPath: Optional[LearningPath] = None
+    recommendedSkills: List[str] = []
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -94,6 +105,7 @@ class ForumPost(BaseModel):
 
 class UserProfileSchema(BaseModel):
     name: Optional[str] = "Learner"
+    userName: Optional[str] = None
     futureSkills: Optional[str] = ""
     currentSkills: Optional[str] = ""
     preferredLearningStyle: Optional[str] = ""
@@ -101,6 +113,8 @@ class UserProfileSchema(BaseModel):
     learningPreferences: Optional[str] = ""
     endGoalMotivation: Optional[str] = ""
     notificationsPreference: Optional[str] = ""
+    activeLearningPath: Optional[LearningPath] = None
+    recommendedSkills: List[str] = []
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -113,7 +127,17 @@ class UserProfileSchema(BaseModel):
                 "timeCommitment": "10 hours/week",
                 "learningPreferences": "Coding exercises, Case studies",
                 "endGoalMotivation": "Career change to a tech role",
-                "notificationsPreference": "Yes"
+                "notificationsPreference": "Yes",
+                "activeLearningPath": {
+                    "title": "Introduction to Cloud Computing",
+                    "progress": "20% complete",
+                    "modules": [
+                        {"id": "module1", "text": "Introduction to Cloud Computing", "locked": False, "inProgress": True, "completed": False},
+                        {"id": "module2", "text": "Understanding Cloud Platforms", "locked": False, "inProgress": False, "completed": False},
+                        {"id": "module3", "text": "Deploying Applications on Cloud Platforms", "locked": False, "inProgress": False, "completed": False}
+                    ]
+                },
+                "recommendedSkills": ["Python", "Cloud Platforms"]
             }
         }
     )

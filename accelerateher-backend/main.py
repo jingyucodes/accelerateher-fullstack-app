@@ -8,8 +8,9 @@ from typing import Optional
 import logging
 import os
 from dotenv import load_dotenv
-from models import UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, ForumPost
-from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_username, create_user, get_user_by_id
+from models import UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, ForumPost, LearningPath, LearningModule
+from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id
+from google import genai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -114,42 +115,111 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id_from_token: str = payload.get("sub")
+        if user_id_from_token is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = await get_user_by_username(username)
+    user = await get_user_by_user_id(user_id_from_token)
     if user is None:
         raise credentials_exception
     return user
 
+def determine_learning_path(profile_data: UserProfileSchema) -> dict:
+    goals = profile_data.futureSkills.lower() if profile_data.futureSkills else ""
+    path_data = None
+    rec_skills = []
+    
+    # Define learning paths
+    paths = {
+        "cloud": {
+            "title": "Cloud Computing Foundations",
+            "modules": [
+                {"id": 'cloud_intro', "text": 'Module 1: Intro to Cloud Concepts'},
+                {"id": 'aws_basics', "text": 'Module 2: AWS Core Services'},
+                {"id": 'azure_basics', "text": 'Module 3: Azure Fundamentals'},
+            ],
+            "skills": ["DevOps Principles", "Cloud Security Best Practices"]
+        },
+        "python": {
+            "title": "Python Programming Path",
+            "modules": [
+                {"id": 'python_fundamentals', "text": 'Module 1: Python Basics'},
+                {"id": 'python_data_structures', "text": 'Module 2: Data Structures in Python'},
+                {"id": 'python_oop', "text": 'Module 3: Object-Oriented Python'},
+            ],
+            "skills": ["NumPy & Pandas", "Data Visualization", "Web Scraping with Python"]
+        },
+        "web": {
+            "title": "Web Development Track",
+            "modules": [
+                {"id": 'html_css_js', "text": 'Module 1: HTML, CSS, JavaScript'},
+                {"id": 'react_basics', "text": 'Module 2: React Fundamentals'},
+                {"id": 'nodejs_express', "text": 'Module 3: Backend with Node.js'},
+            ],
+            "skills": ["Responsive Design", "API Design"]
+        }
+    }
+
+    if "cloud" in goals or "azure" in goals or "aws" in goals:
+        chosen_path = paths["cloud"]
+        rec_skills = chosen_path["skills"]
+    elif "python" in goals:
+        chosen_path = paths["python"]
+        if "data" in goals:
+            rec_skills = [s for s in chosen_path["skills"] if s in ["NumPy & Pandas", "Data Visualization"]]
+        else:
+            rec_skills = [s for s in chosen_path["skills"] if s == "Web Scraping with Python"]
+    elif "web" in goals or "full-stack" in goals:
+        chosen_path = paths["web"]
+        rec_skills = chosen_path["skills"]
+    else:
+        return {"activeLearningPath": None, "recommendedSkills": ["Git & Version Control", "Agile Methodologies"]}
+
+    # Create LearningModule instances
+    learning_modules = [LearningModule(
+        id=m['id'], text=m['text'], 
+        locked=(i > 0), # First module unlocked
+        inProgress=(i == 0), # First module in progress
+        completed=False
+    ) for i, m in enumerate(chosen_path["modules"])]
+    
+    # Create LearningPath instance
+    path_data = LearningPath(
+        title=chosen_path["title"],
+        progress='0% complete', # Or calculate based on completed modules
+        modules=learning_modules
+    )
+
+    return {"activeLearningPath": path_data, "recommendedSkills": rec_skills}
+
 # Authentication endpoints
 @app.post("/api/auth/signup", response_model=UserResponse)
 async def signup(user_data: UserCreate):
-    # Check if username already exists
-    existing_user = await get_user_by_username(user_data.username)
+    existing_user = await get_user_by_user_id(user_data.user_id)
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="User ID already registered")
     
-    # Create new user
     hashed_password = get_password_hash(user_data.password)
     user_doc = {
-        "username": user_data.username,
-        "email": user_data.email,
+        "user_id": user_data.user_id,
         "hashed_password": hashed_password,
         "created_at": datetime.utcnow()
     }
     
-    created_user = await create_user(user_doc)
-    if not created_user:
+    created_user_doc = await create_user(user_doc)
+    if not created_user_doc:
         raise HTTPException(status_code=500, detail="Failed to create user")
 
-    # Create a default user profile
-    user_id_str = str(created_user["_id"])
+    mongodb_doc_id_str = str(created_user_doc["_id"])
+    
+    profile_doc_id = created_user_doc["user_id"]
+    
     default_profile_data = {
-        "user_id": user_id_str,
-        "name": created_user["username"],  # Or some default name
+        "_id": mongodb_doc_id_str,
+        "user_id": created_user_doc["user_id"],
+        "name": created_user_doc["user_id"],
+        "userName": created_user_doc["user_id"],
         "bio": "",
         "interests": [],
         "goals": [],
@@ -158,47 +228,32 @@ async def signup(user_data: UserCreate):
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    
-    # Attempt to add the profile to the user_profiles collection
-    # The UserProfile model in models.py expects '_id' as the primary key
-    # but we are linking via user_id. The upsert endpoint /api/profile/{user_id} uses _id for user_profiles.
-    # For consistency and to avoid confusion, let's ensure the document _id for user_profiles collection is the user_id.
-    
-    # We'll use the existing add_user_profile function which expects a dict.
-    # It internally handles inserting into user_profiles_collection.
-    # The key for user_profiles in DB is `_id` which will store the `user_id_str`.
-    
-    profile_to_insert = default_profile_data.copy()
-    profile_to_insert["_id"] = user_id_str # Set the document _id to be the user_id
 
     try:
-        await add_user_profile(profile_to_insert)
-        logger.info(f"Default profile created for user_id: {user_id_str}")
+        await add_user_profile(default_profile_data)
+        logger.info(f"Default profile created for user with MongoDB ID: {mongodb_doc_id_str}")
     except Exception as e:
-        # Log the error, but don't fail the signup if profile creation fails.
-        # The user can try to update their profile later.
-        logger.error(f"Failed to create default profile for user_id {user_id_str}: {e}")
+        logger.error(f"Failed to create default profile for user MongoDB ID {mongodb_doc_id_str}: {e}")
 
     return UserResponse(
-        id=user_id_str,
-        username=created_user["username"],
-        email=created_user["email"],
-        created_at=created_user["created_at"]
+        id=mongodb_doc_id_str,
+        user_id=created_user_doc["user_id"],
+        created_at=created_user_doc["created_at"]
     )
 
 @app.post("/api/auth/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await get_user_by_username(form_data.username)
+    user = await get_user_by_user_id(form_data.username)
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=401,
-            detail="Incorrect username or password",
+            detail="Incorrect User ID or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user["username"]}, expires_delta=access_token_expires
+        data={"sub": user["user_id"]}, expires_delta=access_token_expires
     )
     
     return {
@@ -206,32 +261,67 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "token_type": "bearer",
         "user": {
             "id": str(user["_id"]),
-            "username": user["username"],
-            "email": user["email"]
+            "user_id": user["user_id"]
         }
     }
 
 # Protected routes
-@app.get("/api/profile/{user_id}")
-async def get_profile(user_id: str, current_user: User = Depends(get_current_user)):
-    profile = await get_user_profile(user_id)
+@app.get("/api/profile/{profile_owner_mongodb_id}")
+async def get_profile(profile_owner_mongodb_id: str, current_user_from_token: User = Depends(get_current_user)):
+    profile = await get_user_profile(profile_owner_mongodb_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
 
-@app.put("/api/profile/{user_id}")
+@app.put("/api/profile/{profile_owner_mongodb_id}")
 async def update_profile(
-    user_id: str,
-    profile_data: dict = Body(...),
-    current_user: User = Depends(get_current_user)
+    profile_owner_mongodb_id: str,
+    profile_data: UserProfileSchema = Body(...),
+    current_user_from_token: User = Depends(get_current_user)
 ):
-    if str(current_user["_id"]) != user_id:
+    if str(current_user_from_token["_id"]) != profile_owner_mongodb_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this profile")
     
-    updated_profile = await update_user_profile(user_id, profile_data)
-    if updated_profile is None:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    return updated_profile
+    # Determine learning path based on goals
+    path_info = determine_learning_path(profile_data)
+
+    data_to_update = profile_data.model_dump(exclude_unset=True)
+    data_to_update["updated_at"] = datetime.utcnow()
+    
+    # Convert Pydantic models to dictionaries for MongoDB storage
+    if "activeLearningPath" in path_info and path_info["activeLearningPath"] is not None:
+        data_to_update["activeLearningPath"] = path_info["activeLearningPath"].model_dump()
+    else:
+        data_to_update["activeLearningPath"] = None
+    
+    data_to_update["recommendedSkills"] = path_info.get("recommendedSkills", [])
+    
+    # First try to update existing profile
+    updated_profile_doc = await update_user_profile(profile_owner_mongodb_id, data_to_update)
+    
+    if updated_profile_doc is None:
+        # Profile doesn't exist, create a new one
+        logger.info(f"Profile not found for user {profile_owner_mongodb_id}, creating new profile")
+        
+        # Create new profile with the user's MongoDB ID as the _id
+        new_profile_data = {
+            "_id": profile_owner_mongodb_id,
+            "user_id": current_user_from_token["user_id"],
+            "name": data_to_update.get("name", "Learner"),
+            "created_at": datetime.utcnow(),
+            **data_to_update
+        }
+        
+        try:
+            created_profile = await add_user_profile(new_profile_data)
+            if created_profile is None:
+                raise HTTPException(status_code=500, detail="Failed to create profile")
+            return created_profile
+        except Exception as e:
+            logger.error(f"Error creating profile for user {profile_owner_mongodb_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to create profile: {str(e)}")
+    
+    return updated_profile_doc
 
 # Forum routes (protected)
 @app.get("/api/forum/posts")
@@ -243,7 +333,7 @@ async def create_post(
     post_data: ForumPost,
     current_user: User = Depends(get_current_user)
 ):
-    post_data.user_id = str(current_user["_id"])
+    post_data.user_id = current_user["user_id"]
     return await add_forum_post(post_data.model_dump(by_alias=True))
 
 @app.get("/")

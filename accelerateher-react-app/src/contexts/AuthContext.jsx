@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
@@ -11,13 +11,12 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const login = async (username, password) => {
+    const login = async (userId, password) => {
         setLoading(true);
         setError(null);
         try {
-            // Create form data for OAuth2
             const formData = new URLSearchParams();
-            formData.append('username', username);
+            formData.append('username', userId);
             formData.append('password', password);
 
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -36,7 +35,7 @@ export const AuthProvider = ({ children }) => {
                 return data.user;
             } else {
                 const errData = await response.json();
-                setError(errData.detail || 'Invalid username or password');
+                setError(errData.detail || 'Invalid User ID or password');
                 return null;
             }
         } catch (err) {
@@ -48,31 +47,23 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signup = async (username, password) => {
+    const signup = async (userId, password) => {
         setLoading(true);
         setError(null);
         try {
-            // Create new user in database
             const response = await fetch(`${API_BASE_URL}/auth/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username,
+                    user_id: userId,
                     password,
-                    email: `${username}@example.com` // Temporary email since backend requires it
                 }),
             });
 
-            console.log('Signup response status:', response.status);
-
             if (response.ok) {
-                const userData = await response.json();
-                console.log('Signup successful, user data:', userData);
-
-                // After successful signup, login automatically
-                const loginSuccess = await login(username, password);
+                const loginSuccess = await login(userId, password);
                 if (loginSuccess) {
                     return loginSuccess;
                 } else {
@@ -81,7 +72,6 @@ export const AuthProvider = ({ children }) => {
                 }
             } else {
                 const errData = await response.json();
-                console.error('Signup failed:', errData);
                 setError(errData.detail || 'Signup failed');
                 return null;
             }
@@ -97,41 +87,34 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
-        localStorage.removeItem('authToken'); // Also remove the auth token
+        localStorage.removeItem('authToken');
     };
 
     const clearAuthError = () => {
         setError(null);
     };
 
-    // Check for stored user and token on mount
-    React.useEffect(() => {
+    useEffect(() => {
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('authToken');
 
         if (storedUser && storedToken) {
-            // Parse the JWT token to check expiration
             try {
                 const tokenParts = storedToken.split('.');
                 if (tokenParts.length === 3) {
                     const payload = JSON.parse(atob(tokenParts[1]));
-                    const expTime = payload.exp * 1000; // Convert to milliseconds
+                    const expTime = payload.exp * 1000;
 
                     if (expTime > Date.now()) {
-                        // Token is still valid
                         setUser(JSON.parse(storedUser));
                     } else {
-                        // Token has expired
-                        console.log('Token expired, logging out');
                         logout();
                     }
                 }
             } catch (err) {
-                console.error('Error parsing token:', err);
                 logout();
             }
         } else {
-            // If either user or token is missing, clear both
             logout();
         }
     }, []);
