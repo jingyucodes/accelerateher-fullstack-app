@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = true }) => {
     const navigate = useNavigate();
@@ -15,8 +16,8 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
     };
 
     let titleToDisplay = pageTitle;
-    if (pageTitle && pageTitle.includes("Welcome back") && userProfile && userProfile.name && userProfile.name !== 'Learner') {
-        titleToDisplay = `Welcome back, ${userProfile.name}!`;
+    if (pageTitle && pageTitle.includes("Welcome back") && userProfile && userProfile.userName && userProfile.userName !== 'Learner') {
+        titleToDisplay = `Welcome back, ${userProfile.userName}!`;
     } else if (pageTitle && pageTitle.includes("Welcome back")) {
         titleToDisplay = `Welcome back, Learner!`;
     }
@@ -43,6 +44,9 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                     )}
                 </div>
 
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 {/* User Profile Dropdown */}
                 <div className="user-profile-dropdown">
                     <button
@@ -51,7 +55,7 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                         aria-label="User menu"
                     >
                         <div className="avatar-circle">
-                            {getInitials(userProfile?.name)}
+                            {getInitials(userProfile?.userName)}
                         </div>
                         <span className="dropdown-arrow">▼</span>
                     </button>
@@ -60,10 +64,10 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                         <div className="profile-dropdown-menu">
                             <div className="profile-dropdown-header">
                                 <div className="avatar-circle large">
-                                    {getInitials(userProfile?.name)}
+                                    {getInitials(userProfile?.userName)}
                                 </div>
                                 <div className="profile-info">
-                                    <div className="profile-name">{userProfile?.name || 'Learner'}</div>
+                                    <div className="profile-name">{userProfile?.userName || 'Learner'}</div>
                                     <div className="profile-goal">{userProfile?.futureSkills || 'Learning in progress'}</div>
                                 </div>
                             </div>

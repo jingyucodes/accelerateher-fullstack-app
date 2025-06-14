@@ -20,7 +20,10 @@ export const UserProfileProvider = ({ children }) => {
     }, [logout]);
 
     const fetchUserProfile = useCallback(async (userId) => {
+        console.log('fetchUserProfile called with userId:', userId);
+
         if (!userId) {
+            console.log('No userId provided, returning early');
             setUserProfileState(null);
             setLoading(false);
             return;
@@ -28,32 +31,46 @@ export const UserProfileProvider = ({ children }) => {
 
         setLoading(true);
         setError(null);
+
+        console.log('Starting profile fetch for userId:', userId);
+
         try {
             const token = localStorage.getItem('authToken');
+            console.log('Token found:', !!token);
+
             if (!token) {
+                console.log('No token found, calling handleUnauthorized');
                 handleUnauthorized();
                 return;
             }
 
-            const response = await fetch(`${API_BASE_URL}/profile/${userId}`, {
+            const requestUrl = `${API_BASE_URL}/profile/${userId}`;
+            console.log('Making request to:', requestUrl);
+
+            const response = await fetch(requestUrl, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Profile data received:', data);
                 setUserProfileState(data);
             } else if (response.status === 401) {
+                console.log('401 Unauthorized, calling handleUnauthorized');
                 handleUnauthorized();
             } else if (response.status === 404) {
+                console.log('404 Profile not found');
                 setUserProfileState(null);
             } else {
                 const errData = await response.json().catch(() => ({ detail: "Failed to parse error response" }));
                 console.error(`Error fetching user profile (${response.status}):`, errData.detail || response.statusText);
                 setError(errData.detail || `Failed to fetch profile (status ${response.status})`);
-                setUserProfileState(null); // CRITICAL: Set profile to null on error
+                setUserProfileState(null);
             }
         } catch (err) {
             console.error("Network error fetching user profile:", err);
@@ -65,9 +82,12 @@ export const UserProfileProvider = ({ children }) => {
     }, [handleUnauthorized]);
 
     useEffect(() => {
+        console.log('UserProfileContext useEffect triggered:', { user, userId: user?.id });
         if (user) {
+            console.log('Calling fetchUserProfile with userId:', user.id);
             fetchUserProfile(user.id);
         } else {
+            console.log('No user found, setting profile to null');
             setUserProfileState(null);
             setLoading(false);
         }

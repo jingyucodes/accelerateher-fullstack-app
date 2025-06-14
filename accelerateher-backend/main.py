@@ -4,12 +4,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
-from typing import Optional
+from typing import Optional, Dict, List
 import logging
 import os
 from dotenv import load_dotenv
 from models import UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, ForumPost, LearningPath, LearningModule
-from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id
+from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id, update_user_analytics
 from google import genai
 
 # Configure logging
@@ -133,7 +133,7 @@ def determine_learning_path(profile_data: UserProfileSchema) -> dict:
     # Define learning paths
     paths = {
         "cloud": {
-            "title": "Cloud Computing Foundations",
+            "title": "Cloud Computing Course",
             "modules": [
                 {"id": 'cloud_intro', "text": 'Module 1: Intro to Cloud Concepts'},
                 {"id": 'aws_basics', "text": 'Module 2: AWS Core Services'},
@@ -142,7 +142,7 @@ def determine_learning_path(profile_data: UserProfileSchema) -> dict:
             "skills": ["DevOps Principles", "Cloud Security Best Practices"]
         },
         "python": {
-            "title": "Python Programming Path",
+            "title": "Python Programming Course",
             "modules": [
                 {"id": 'python_fundamentals', "text": 'Module 1: Python Basics'},
                 {"id": 'python_data_structures', "text": 'Module 2: Data Structures in Python'},
@@ -151,7 +151,7 @@ def determine_learning_path(profile_data: UserProfileSchema) -> dict:
             "skills": ["NumPy & Pandas", "Data Visualization", "Web Scraping with Python"]
         },
         "web": {
-            "title": "Web Development Track",
+            "title": "Web Development Course",
             "modules": [
                 {"id": 'html_css_js', "text": 'Module 1: HTML, CSS, JavaScript'},
                 {"id": 'react_basics', "text": 'Module 2: React Fundamentals'},
@@ -218,7 +218,6 @@ async def signup(user_data: UserCreate):
     default_profile_data = {
         "_id": mongodb_doc_id_str,
         "user_id": created_user_doc["user_id"],
-        "name": created_user_doc["user_id"],
         "userName": created_user_doc["user_id"],
         "bio": "",
         "interests": [],
@@ -307,7 +306,7 @@ async def update_profile(
         new_profile_data = {
             "_id": profile_owner_mongodb_id,
             "user_id": current_user_from_token["user_id"],
-            "name": data_to_update.get("name", "Learner"),
+            "userName": data_to_update.get("userName", current_user_from_token["user_id"]),
             "created_at": datetime.utcnow(),
             **data_to_update
         }
@@ -339,5 +338,392 @@ async def create_post(
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to AccelerateHer User Profile API!"}
+
+@app.post("/api/analytics/track-module-progress")
+async def track_module_progress(
+    module_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Track user's progress in a specific module"""
+    try:
+        user_profile = await get_user_profile(str(current_user["_id"]))
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        module_id = module_data.get("module_id")
+        time_spent = module_data.get("time_spent_minutes", 0)
+        is_completed = module_data.get("completed", False)
+        quiz_score = module_data.get("quiz_score")
+
+        # Initialize analytics if not exists
+        analytics = user_profile.get("analytics") or {
+            "user_id": str(current_user["_id"]),
+            "current_week": {
+                "week_start": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
+                "week_end": (datetime.utcnow() + timedelta(days=7)).replace(hour=23, minute=59, second=59),
+                "planned_hours": int(user_profile.get("timeCommitment", "0").split()[0]),
+                "completed_hours": 0,
+                "completed_modules": [],
+                "active_days": 0
+            },
+            "current_month": {
+                "month_start": datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0),
+                "month_end": (datetime.utcnow().replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1),
+                "total_hours": 0,
+                "completed_modules": [],
+                "learning_velocity": 0.0,
+                "streak_days": 0
+            },
+            "module_progress": {},
+            "total_completion_percentage": 0.0,
+            "last_updated": datetime.utcnow()
+        }
+
+        # Update module progress
+        if module_id not in analytics["module_progress"]:
+            analytics["module_progress"][module_id] = {
+                "module_id": module_id,
+                "started_at": datetime.utcnow(),
+                "time_spent_minutes": 0,
+                "attempts": 0
+            }
+
+        module_progress = analytics["module_progress"][module_id]
+        module_progress["time_spent_minutes"] += time_spent
+        module_progress["last_accessed"] = datetime.utcnow()
+        
+        if is_completed:
+            module_progress["completed_at"] = datetime.utcnow()
+            completed_modules = user_profile.get("completed_modules", [])
+            
+            if module_id not in completed_modules:
+                # Add module to completed list
+                completed_modules.append(module_id)
+                logger.info(f"Adding module {module_id} to completed list for user {str(current_user['_id'])}")
+                
+                # IMPORTANT: Update the main profile with completed modules immediately
+                await update_user_profile(str(current_user["_id"]), {"completed_modules": completed_modules})
+                logger.info(f"Updated main profile with completed modules: {completed_modules}")
+            else:
+                # Module already completed, don't track additional progress
+                logger.info(f"Module {module_id} already completed for user {str(current_user['_id'])}")
+                return {"status": "success", "message": "Module already completed"}
+                
+                # Update learning path modules with completion status
+                if user_profile.get("activeLearningPath") and user_profile["activeLearningPath"].get("modules"):
+                    modules = user_profile["activeLearningPath"]["modules"]
+                    updated_modules = []
+                    
+                    for i, module in enumerate(modules):
+                        # Create a copy of the module to avoid modifying the original
+                        updated_module = dict(module)
+                        
+                        # Check if this module is completed based on completed_modules list
+                        is_module_completed = updated_module["id"] in completed_modules
+                        updated_module["completed"] = is_module_completed
+                        
+                        # Set inProgress status
+                        if is_module_completed:
+                            updated_module["inProgress"] = False
+                        else:
+                            # Module is in progress if it's the first incomplete module
+                            prev_modules_completed = all(
+                                mod["id"] in completed_modules 
+                                for mod in modules[:i]
+                            ) if i > 0 else True
+                            updated_module["inProgress"] = prev_modules_completed
+                        
+                        # Set locked status
+                        if i == 0:
+                            # First module is always unlocked
+                            updated_module["locked"] = False
+                        else:
+                            # Module is locked if the previous module is not completed
+                            prev_module_completed = modules[i-1]["id"] in completed_modules
+                            updated_module["locked"] = not prev_module_completed
+                            
+                        updated_modules.append(updated_module)
+                    
+                    # Calculate progress percentage based on completed_modules
+                    total_modules = len(updated_modules)
+                    completed_count = len(completed_modules)
+                    progress_percentage = (completed_count / total_modules) * 100 if total_modules > 0 else 0
+                    
+                    # Update the learning path
+                    updated_learning_path = {
+                        **user_profile["activeLearningPath"],
+                        "modules": updated_modules,
+                        "progress": f"{int(progress_percentage)}% complete"
+                    }
+                    
+                    # Update only the learning path since completed_modules was already updated above
+                    await update_user_profile(str(current_user["_id"]), {
+                        "activeLearningPath": updated_learning_path
+                    })
+                    logger.info(f"Updated learning path with progress: {progress_percentage}%")
+                
+                # Update in memory for analytics calculation
+                user_profile["completed_modules"] = completed_modules
+
+        if quiz_score is not None:
+            module_progress["quiz_score"] = quiz_score
+
+        # Update weekly progress
+        weekly_hours = time_spent / 60  # Convert minutes to hours
+        analytics["current_week"]["completed_hours"] += weekly_hours
+        analytics["current_month"]["total_hours"] += weekly_hours
+
+        # Recalculate analytics based on current learning path modules
+        learning_path_modules = user_profile.get("activeLearningPath", {}).get("modules", [])
+        path_module_ids = [mod["id"] for mod in learning_path_modules]
+        completed_modules_list = user_profile.get("completed_modules", [])
+        
+        # Filter completed modules to only include those in current learning path
+        completed_in_current_path = [mod for mod in completed_modules_list if mod in path_module_ids]
+        
+        # Update weekly and monthly analytics with all completed modules from current path
+        analytics["current_week"]["completed_modules"] = completed_in_current_path.copy()
+        analytics["current_month"]["completed_modules"] = completed_in_current_path.copy()
+
+        # Calculate completion percentage based on current learning path
+        if learning_path_modules:
+            total_modules = len(learning_path_modules)
+            analytics["total_completion_percentage"] = (len(completed_in_current_path) / total_modules) * 100
+        else:
+            analytics["total_completion_percentage"] = 0
+
+        # Update learning velocity (modules per week) - assuming 1 week active period for now
+        analytics["current_month"]["learning_velocity"] = len(completed_in_current_path) / 1 if len(completed_in_current_path) > 0 else 0
+
+        # Reset streak to a reasonable value based on account creation date
+        # For now, reset to 1 if user has completed modules, 0 if not
+        if len(completed_in_current_path) > 0:
+            analytics["current_month"]["streak_days"] = 1  # Reset to 1 day since they're active
+            analytics["current_month"]["last_activity_date"] = datetime.utcnow().date().isoformat()
+        else:
+            analytics["current_month"]["streak_days"] = 0
+            analytics["current_month"]["last_activity_date"] = None
+
+        analytics["last_updated"] = datetime.utcnow()
+
+        # Debug: Log analytics before saving
+        logger.info(f"ANALYTICS BEFORE SAVE:")
+        logger.info(f"  - Current week completed modules: {analytics['current_week']['completed_modules']}")
+        logger.info(f"  - Current month completed modules: {analytics['current_month']['completed_modules']}")
+        logger.info(f"  - Total completion percentage: {analytics['total_completion_percentage']}")
+        logger.info(f"  - Learning velocity: {analytics['current_month']['learning_velocity']}")
+
+        # Save only analytics field
+        await update_user_analytics(str(current_user["_id"]), analytics)
+
+        # CRITICAL: Fetch updated profile to return to frontend
+        updated_profile = await get_user_profile(str(current_user["_id"]))
+        logger.info(f"Returning updated profile with completed_modules: {updated_profile.get('completed_modules', [])}")
+        
+        # Debug: Log saved analytics
+        saved_analytics = updated_profile.get("analytics", {})
+        logger.info(f"SAVED ANALYTICS:")
+        logger.info(f"  - Current week completed modules: {saved_analytics.get('current_week', {}).get('completed_modules', [])}")
+        logger.info(f"  - Current month completed modules: {saved_analytics.get('current_month', {}).get('completed_modules', [])}")
+        logger.info(f"  - Total completion percentage: {saved_analytics.get('total_completion_percentage', 0)}")
+
+        return {
+            "status": "success", 
+            "message": "Progress updated successfully",
+            "completed_modules": updated_profile.get("completed_modules", []),
+            "learning_path": updated_profile.get("activeLearningPath")
+        }
+
+    except Exception as e:
+        logger.error(f"Error tracking module progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/user-progress/{user_id}")
+async def get_user_progress(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed analytics for a user"""
+    try:
+        user_profile = await get_user_profile(user_id)
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        if not user_profile.get("analytics"):
+            return {
+                "completion_percentage": 0,
+                "weekly_progress": {
+                    "planned_hours": 0,
+                    "completed_hours": 0,
+                    "completed_modules": []
+                },
+                "monthly_progress": {
+                    "total_hours": 0,
+                    "completed_modules": [],
+                    "learning_velocity": 0,
+                    "streak_days": 0
+                }
+            }
+
+        analytics = user_profile["analytics"]
+        return {
+            "completion_percentage": analytics["total_completion_percentage"],
+            "weekly_progress": {
+                "planned_hours": analytics["current_week"]["planned_hours"],
+                "completed_hours": analytics["current_week"]["completed_hours"],
+                "completed_modules": analytics["current_week"]["completed_modules"]
+            },
+            "monthly_progress": {
+                "total_hours": analytics["current_month"]["total_hours"],
+                "completed_modules": analytics["current_month"]["completed_modules"],
+                "learning_velocity": analytics["current_month"]["learning_velocity"],
+                "streak_days": analytics["current_month"]["streak_days"]
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting user progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/debug/profile/{user_id}")
+async def debug_user_profile(user_id: str, current_user: User = Depends(get_current_user)):
+    """Debug endpoint to check user profile state in database"""
+    try:
+        profile = await get_user_profile(user_id)
+        if not profile:
+            return {"error": "Profile not found"}
+        
+        return {
+            "profile_id": str(profile.get("_id")),
+            "completed_modules": profile.get("completed_modules", []),
+            "learning_path_title": profile.get("activeLearningPath", {}).get("title"),
+            "learning_path_progress": profile.get("activeLearningPath", {}).get("progress"),
+            "learning_path_modules": profile.get("activeLearningPath", {}).get("modules", []),
+            "analytics_exists": bool(profile.get("analytics")),
+            "analytics_completion": profile.get("analytics", {}).get("total_completion_percentage", 0),
+            "analytics_week_modules": profile.get("analytics", {}).get("current_week", {}).get("completed_modules", []),
+            "analytics_month_modules": profile.get("analytics", {}).get("current_month", {}).get("completed_modules", []),
+            "analytics_velocity": profile.get("analytics", {}).get("current_month", {}).get("learning_velocity", 0)
+        }
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}")
+        return {"error": str(e)}
+
+@app.post("/api/analytics/refresh")
+async def refresh_analytics(current_user: User = Depends(get_current_user)):
+    """Refresh analytics data based on current completed modules"""
+    try:
+        user_profile = await get_user_profile(str(current_user["_id"]))
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        # Get current completed modules and learning path
+        completed_modules = user_profile.get("completed_modules", [])
+        learning_path_modules = user_profile.get("activeLearningPath", {}).get("modules", [])
+        path_module_ids = [mod["id"] for mod in learning_path_modules]
+        
+        # Filter completed modules to only include those in current learning path
+        completed_in_current_path = [mod for mod in completed_modules if mod in path_module_ids]
+
+        # Initialize or get existing analytics
+        analytics = user_profile.get("analytics") or {
+            "user_id": str(current_user["_id"]),
+            "current_week": {
+                "week_start": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
+                "week_end": (datetime.utcnow() + timedelta(days=7)).replace(hour=23, minute=59, second=59),
+                "planned_hours": int(user_profile.get("timeCommitment", "0").split()[0]) if user_profile.get("timeCommitment") else 0,
+                "completed_hours": 0,
+                "completed_modules": [],
+                "active_days": 0
+            },
+            "current_month": {
+                "month_start": datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0),
+                "month_end": (datetime.utcnow().replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1),
+                "total_hours": 0,
+                "completed_modules": [],
+                "learning_velocity": 0.0,
+                "streak_days": 0
+            },
+            "module_progress": {},
+            "total_completion_percentage": 0.0,
+            "last_updated": datetime.utcnow()
+        }
+
+        # Update analytics with current data
+        analytics["current_week"]["completed_modules"] = completed_in_current_path.copy()
+        analytics["current_month"]["completed_modules"] = completed_in_current_path.copy()
+
+        # Calculate completion percentage
+        if learning_path_modules:
+            total_modules = len(learning_path_modules)
+            analytics["total_completion_percentage"] = (len(completed_in_current_path) / total_modules) * 100
+        else:
+            analytics["total_completion_percentage"] = 0
+
+        # Update learning velocity
+        analytics["current_month"]["learning_velocity"] = len(completed_in_current_path) / 1 if len(completed_in_current_path) > 0 else 0
+
+        # Reset streak to a reasonable value based on account creation date
+        # For now, reset to 1 if user has completed modules, 0 if not
+        if len(completed_in_current_path) > 0:
+            analytics["current_month"]["streak_days"] = 1  # Reset to 1 day since they're active
+            analytics["current_month"]["last_activity_date"] = datetime.utcnow().date().isoformat()
+        else:
+            analytics["current_month"]["streak_days"] = 0
+            analytics["current_month"]["last_activity_date"] = None
+
+        analytics["last_updated"] = datetime.utcnow()
+
+        # Save analytics
+        await update_user_analytics(str(current_user["_id"]), analytics)
+
+        return {
+            "status": "success",
+            "message": "Analytics refreshed successfully",
+            "completed_modules": completed_in_current_path,
+            "total_completion": analytics["total_completion_percentage"],
+            "weekly_modules": len(completed_in_current_path),
+            "monthly_velocity": analytics["current_month"]["learning_velocity"]
+        }
+
+    except Exception as e:
+        logger.error(f"Error refreshing analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/analytics/reset-streak")
+async def reset_streak(current_user: User = Depends(get_current_user)):
+    """Reset streak to a reasonable value - debug endpoint"""
+    try:
+        user_profile = await get_user_profile(str(current_user["_id"]))
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        analytics = user_profile.get("analytics")
+        if not analytics:
+            return {"status": "error", "message": "No analytics found"}
+
+        # Reset streak to 1 if user has completed modules, 0 if not
+        completed_modules = user_profile.get("completed_modules", [])
+        if len(completed_modules) > 0:
+            analytics["current_month"]["streak_days"] = 1
+            analytics["current_month"]["last_activity_date"] = datetime.utcnow().date().isoformat()
+        else:
+            analytics["current_month"]["streak_days"] = 0
+            analytics["current_month"]["last_activity_date"] = None
+
+        analytics["last_updated"] = datetime.utcnow()
+
+        # Save analytics
+        await update_user_analytics(str(current_user["_id"]), analytics)
+
+        return {
+            "status": "success",
+            "message": "Streak reset successfully",
+            "new_streak": analytics["current_month"]["streak_days"]
+        }
+
+    except Exception as e:
+        logger.error(f"Error resetting streak: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # To run the server: uvicorn main:app --reload

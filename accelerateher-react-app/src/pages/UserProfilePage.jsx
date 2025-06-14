@@ -32,7 +32,7 @@ const UserProfilePage = () => {
     const [profileCreationComplete, setProfileCreationComplete] = useState(false);
     const [showActionButtons, setShowActionButtons] = useState(false);
     const [extractedProfile, setExtractedProfile] = useState({
-        name: '',
+        userName: '',
         futureSkills: '',
         currentSkills: '',
         preferredLearningStyle: '',
@@ -107,7 +107,7 @@ const UserProfilePage = () => {
 
         // Simple pattern matching - basic fallback
         const nameMatch = allText.match(/(?:i'm|i am|my name is|call me)\s+([a-zA-Z]+)/i);
-        if (nameMatch) extracted.name = nameMatch[1];
+        if (nameMatch) extracted.userName = nameMatch[1];
 
         const skillKeywords = ['python', 'javascript', 'java', 'react', 'cloud', 'aws', 'azure', 'data science'];
         skillKeywords.forEach(skill => {
@@ -134,7 +134,7 @@ const UserProfilePage = () => {
 You are an AI assistant helping to extract user profile information from a conversation about learning preferences. 
 
 Based on the following conversation, extract the following information and return it in JSON format:
-- name: User's name or preferred nickname
+- userName: User's name or preferred nickname
 - futureSkills: What they want to learn (technologies, skills)
 - currentSkills: Their current technical background
 - preferredLearningStyle: How they like to learn (videos, hands-on, reading, etc.)
@@ -164,7 +164,7 @@ JSON:`;
 
         // Fallback: return empty profile
         return {
-            name: '',
+            userName: '',
             futureSkills: '',
             currentSkills: '',
             preferredLearningStyle: '',
@@ -202,7 +202,7 @@ Current conversation context: ${context}
 User just said: "${userMessage}"
 
 Current extracted profile information:
-- Name: ${extractedProfile.name || 'not provided'}
+- Display Name: ${extractedProfile.userName || 'not provided'}
 - Learning Goals: ${extractedProfile.futureSkills || 'not provided'}
 - Current Skills: ${extractedProfile.currentSkills || 'not provided'}
 - Learning Style: ${extractedProfile.preferredLearningStyle || 'not provided'}
@@ -241,7 +241,7 @@ Respond naturally:`;
 You are an expert learning path designer. Based on the user's profile, create a personalized learning recommendation.
 
 User Profile:
-- Name: ${profileData.name}
+- Display Name: ${profileData.userName}
 - Learning Goals: ${profileData.futureSkills}
 - Current Skills: ${profileData.currentSkills}
 - Learning Style: ${profileData.preferredLearningStyle}
@@ -268,12 +268,38 @@ Format as a clear, encouraging summary that feels personalized to them.`;
         }
     }, [messages, isTyping]);
 
+    // Check if user already has a profile and redirect to dashboard
+    useEffect(() => {
+        if (!contextLoading && initialProfileData) {
+            // Check if user has meaningful profile data (either userName filled or activeLearningPath exists)
+            const hasCompletedProfile = (initialProfileData.userName && initialProfileData.userName.trim() !== '') ||
+                (initialProfileData.activeLearningPath && Object.keys(initialProfileData.activeLearningPath).length > 0);
+
+            if (hasCompletedProfile) {
+                console.log('User already has a complete profile, redirecting to dashboard');
+                navigate('/dashboard');
+                return;
+            }
+        }
+    }, [contextLoading, initialProfileData, navigate]);
+
     // Initialize conversation
     useEffect(() => {
         // Prevent initialization if we're in the middle of generating a profile or have completed it
         if (conversationState === 'GENERATING_PROFILE' || profileCreationComplete || profileCreationStarted.current) {
             console.log('Skipping initialization - profile creation already started or in progress');
             return;
+        }
+
+        // Don't start profile creation if user already has a profile
+        if (!contextLoading && initialProfileData) {
+            const hasCompletedProfile = (initialProfileData.userName && initialProfileData.userName.trim() !== '') ||
+                (initialProfileData.activeLearningPath && Object.keys(initialProfileData.activeLearningPath).length > 0);
+
+            if (hasCompletedProfile) {
+                console.log('User already has profile, not starting conversation');
+                return;
+            }
         }
 
         if (!contextLoading && conversationState === 'GREETING' && !hasInitialized.current && !profileCreationComplete) {

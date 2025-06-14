@@ -93,16 +93,42 @@ async def get_user_profile(user_id: str):
 
 async def update_user_profile(user_id: str, profile_data: dict):
     try:
+        logger.info(f"UPDATING USER PROFILE - user_id: {user_id}")
+        logger.info(f"UPDATING USER PROFILE - data keys: {list(profile_data.keys())}")
+        if 'completed_modules' in profile_data:
+            logger.info(f"UPDATING USER PROFILE - completed_modules: {profile_data['completed_modules']}")
+        
         # Updating based on _id, which is the user_id string
         result = await user_profiles_collection.update_one(
             {"_id": user_id},
             {"$set": profile_data}
         )
+        
+        logger.info(f"UPDATE RESULT - matched_count: {result.matched_count}, modified_count: {result.modified_count}")
+        
+        if result.matched_count > 0:
+            updated_doc = await user_profiles_collection.find_one({"_id": user_id})
+            if updated_doc and 'completed_modules' in profile_data:
+                logger.info(f"VERIFICATION - saved completed_modules: {updated_doc.get('completed_modules', [])}")
+            return updated_doc
+        else:
+            logger.error(f"NO DOCUMENT MATCHED for user_id: {user_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Error updating user profile for _id {user_id}: {e}")
+        return None
+
+async def update_user_analytics(user_id: str, analytics_data: dict):
+    try:
+        result = await user_profiles_collection.update_one(
+            {"_id": user_id},
+            {"$set": {"analytics": analytics_data}}
+        )
         if result.matched_count > 0:
             return await user_profiles_collection.find_one({"_id": user_id})
         return None
     except Exception as e:
-        logger.error(f"Error updating user profile for _id {user_id}: {e}")
+        logger.error(f"Error updating analytics for user profile _id {user_id}: {e}")
         return None
 
 # Forum operations

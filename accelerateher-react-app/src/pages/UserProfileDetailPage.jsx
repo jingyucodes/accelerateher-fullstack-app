@@ -16,11 +16,10 @@ const UserProfileDetailPage = () => {
         if (userProfile) {
             setEditedProfile({
                 ...userProfile,
-                userName: userProfile.userName || userProfile.name || (user ? user.user_id : ''),
+                userName: userProfile.userName || (user ? user.user_id : ''),
             });
         } else if (user && !loading) {
             setEditedProfile({
-                name: user.user_id || 'Learner',
                 userName: user.user_id || '',
                 futureSkills: '',
                 currentSkills: '',
@@ -38,11 +37,10 @@ const UserProfileDetailPage = () => {
         if (userProfile) {
             setEditedProfile({
                 ...userProfile,
-                userName: userProfile.userName || userProfile.name || (user ? user.user_id : ''),
+                userName: userProfile.userName || (user ? user.user_id : ''),
             });
         } else if (user) {
             setEditedProfile({
-                name: user.user_id || 'Learner',
                 userName: user.user_id || '',
                 futureSkills: '',
                 currentSkills: '',
@@ -60,11 +58,10 @@ const UserProfileDetailPage = () => {
         if (userProfile) {
             setEditedProfile({
                 ...userProfile,
-                userName: userProfile.userName || userProfile.name || (user ? user.user_id : ''),
+                userName: userProfile.userName || (user ? user.user_id : ''),
             });
         } else if (user) {
             setEditedProfile({
-                name: user.user_id || 'Learner',
                 userName: user.user_id || '',
                 futureSkills: '',
                 currentSkills: '',
@@ -101,8 +98,8 @@ const UserProfileDetailPage = () => {
     };
 
     const getInitials = () => {
-        const nameForInitials = editedProfile.userName || userProfile?.userName || editedProfile.name || userProfile?.name || (user ? user.user_id : 'L');
-        if (!nameForInitials || nameForInitials === 'Learner') return user && user.user_id ? user.user_id.charAt(0).toUpperCase() : 'L';
+        const nameForInitials = editedProfile.userName || userProfile?.userName || (user ? user.user_id : 'L');
+        if (!nameForInitials) return user && user.user_id ? user.user_id.charAt(0).toUpperCase() : 'L';
         return nameForInitials.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
@@ -114,11 +111,10 @@ const UserProfileDetailPage = () => {
 
     const displayLoginId = user ? user.user_id : 'N/A';
 
-    const headerDisplayName = isEditing ? (editedProfile.userName || editedProfile.name || displayLoginId)
-        : (userProfile?.userName || userProfile?.name || displayLoginId);
+    const headerDisplayName = isEditing ? (editedProfile.userName || displayLoginId)
+        : (userProfile?.userName || displayLoginId);
 
-    const viewModeFullName = userProfile?.name || (user && !userProfile ? user.user_id : 'Not specified');
-    const viewModeDisplayName = userProfile?.userName || userProfile?.name || displayLoginId;
+    const viewModeDisplayName = userProfile?.userName || displayLoginId;
 
     return (
         <>
@@ -204,21 +200,6 @@ const UserProfileDetailPage = () => {
                     <div className="profile-section">
                         <h2>📋 Personal Information</h2>
                         <div className="profile-fields">
-                            <div className="field-group">
-                                <label htmlFor="nameEdit">Full Name</label>
-                                {isEditing ? (
-                                    <input
-                                        type="text"
-                                        id="nameEdit"
-                                        value={editedProfile.name || ''}
-                                        onChange={(e) => handleInputChange('name', e.target.value)}
-                                        placeholder="Your full name (optional)"
-                                    />
-                                ) : (
-                                    <div className="field-value">{viewModeFullName}</div>
-                                )}
-                            </div>
-
                             <div className="field-group">
                                 <label htmlFor="notificationsPreferenceEdit">Notification Preferences</label>
                                 {isEditing ? (

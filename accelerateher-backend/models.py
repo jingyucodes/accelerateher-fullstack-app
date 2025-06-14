@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Any, ClassVar, List
-from datetime import datetime
+from typing import Optional, Any, ClassVar, List, Dict
+from datetime import datetime, timedelta
 from bson import ObjectId
 
 class PyObjectId(ObjectId):
@@ -67,10 +67,44 @@ class LearningPath(BaseModel):
     progress: str = "0% complete"
     modules: List[LearningModule] = []
 
+class ModuleProgress(BaseModel):
+    module_id: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    time_spent_minutes: int = 0
+    attempts: int = 0
+    quiz_score: Optional[float] = None
+    last_accessed: Optional[datetime] = None
+
+class WeeklyProgress(BaseModel):
+    week_start: datetime
+    week_end: datetime
+    planned_hours: int
+    completed_hours: int
+    completed_modules: List[str] = []
+    active_days: int = 0
+
+class MonthlyProgress(BaseModel):
+    month_start: datetime
+    month_end: datetime
+    total_hours: int
+    completed_modules: List[str] = []
+    learning_velocity: float = 0.0  # modules completed per week
+    streak_days: int = 0
+    last_activity_date: Optional[str] = None  # Track last activity date for streak calculation
+
+class LearningAnalytics(BaseModel):
+    user_id: str
+    current_week: WeeklyProgress
+    current_month: MonthlyProgress
+    module_progress: Dict[str, ModuleProgress] = {}  # module_id -> progress
+    total_completion_percentage: float = 0.0
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+
 class UserProfile(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     user_id: str
-    name: str
+    userName: str
     bio: Optional[str] = None
     interests: list[str] = []
     goals: list[str] = []
@@ -80,6 +114,7 @@ class UserProfile(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     activeLearningPath: Optional[LearningPath] = None
     recommendedSkills: List[str] = []
+    analytics: Optional[LearningAnalytics] = None
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -104,7 +139,6 @@ class ForumPost(BaseModel):
     )
 
 class UserProfileSchema(BaseModel):
-    name: Optional[str] = "Learner"
     userName: Optional[str] = None
     futureSkills: Optional[str] = ""
     currentSkills: Optional[str] = ""
@@ -120,7 +154,7 @@ class UserProfileSchema(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "name": "Jane Doe",
+                "userName": "Jane Doe",
                 "futureSkills": "Cloud Engineering, DevOps",
                 "currentSkills": "Python basics, some SQL",
                 "preferredLearningStyle": "Hands-on projects, Video tutorials",
