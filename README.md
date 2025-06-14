@@ -114,7 +114,7 @@ GEMINI_API_KEY=your-google-gemini-api-key-here
 
 ### 3. Frontend Setup
 ```bash
-cd ../accelerateher-react-app
+cd ../accelerateher-frontend
 
 # Install dependencies
 npm install
@@ -133,7 +133,7 @@ uvicorn main:app --reload --port 8000
 
 **Start Frontend (Terminal 2):**
 ```bash
-cd accelerateher-react-app
+cd accelerateher-frontend
 npm run dev
 ```
 
@@ -151,7 +151,7 @@ accelerateher-fullstack-app/
 │   ├── models.py                   # Pydantic models
 │   ├── database.py                 # MongoDB connection
 │   └── .env                        # Environment variables
-├── accelerateher-react-app/        # React Frontend
+├── accelerateher-frontend/          # React Frontend
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Header.jsx          # Navigation header

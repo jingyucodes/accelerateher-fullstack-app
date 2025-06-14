@@ -24,25 +24,48 @@ const DashboardPage = () => {
         if (userProfile && !loading) {
             console.log('User profile loaded:', userProfile);
 
-            // Check if user has an active learning path
-            if (userProfile.activeLearningPath && userProfile.activeLearningPath.modules) {
+            // Check if user has completed their profile setup
+            const hasCompletedProfile = !!(userProfile.activeLearningPath &&
+                userProfile.futureSkills &&
+                userProfile.timeCommitment);
+
+            console.log('Profile completeness check:', {
+                hasActiveLearningPath: !!userProfile.activeLearningPath,
+                hasFutureSkills: !!userProfile.futureSkills,
+                hasTimeCommitment: !!userProfile.timeCommitment,
+                hasCompletedProfile
+            });
+
+            if (hasCompletedProfile) {
                 const completedModules = userProfile.completed_modules || [];
                 const updatedPath = { ...userProfile.activeLearningPath };
 
-                // Count completed modules in current path
-                const pathModuleIds = updatedPath.modules.map(m => m.id);
-                const completedInPath = completedModules.filter(id => pathModuleIds.includes(id)).length;
-                const totalModules = updatedPath.modules.length;
-                const progressPercentage = totalModules > 0 ? Math.round((completedInPath / totalModules) * 100) : 0;
-                updatedPath.progress = `${progressPercentage}% complete`;
+                // Use modules from userProfile.modules or activeLearningPath.modules as fallback
+                const modules = userProfile.modules || userProfile.activeLearningPath?.modules || [];
 
-                console.log('Updated path progress:', progressPercentage, 'Completed in path:', completedInPath, 'Total modules:', totalModules);
+                if (modules.length > 0) {
+                    // Count completed modules in current path
+                    const pathModuleIds = modules.map(m => m.id);
+                    const completedInPath = completedModules.filter(id => pathModuleIds.includes(id)).length;
+                    const totalModules = modules.length;
+                    const progressPercentage = totalModules > 0 ? Math.round((completedInPath / totalModules) * 100) : 0;
+                    updatedPath.progress = `${progressPercentage}% complete`;
+                    updatedPath.modules = modules; // Ensure modules are in the path
+
+                    console.log('Updated path progress:', progressPercentage, 'Completed in path:', completedInPath, 'Total modules:', totalModules);
+                } else {
+                    // No modules yet, show 0% progress
+                    updatedPath.progress = '0% complete';
+                    updatedPath.modules = [];
+                    console.log('No modules found, setting 0% progress');
+                }
 
                 setActivePath(updatedPath);
                 setRecommendedSkills(userProfile.recommendedSkills || []);
                 setIsNewUser(false);
             } else {
-                // This is a new user or a user who hasn't set up their profile yet
+                // User needs to complete their profile setup
+                console.log('User profile incomplete, showing welcome screen');
                 setIsNewUser(true);
                 setActivePath(null); // Explicitly set no active path
             }
@@ -82,11 +105,154 @@ const DashboardPage = () => {
 
     if (isNewUser) {
         return (
-            <div style={{ padding: "20px" }}>
-                <h2>Welcome to AccelerateHer!</h2>
-                <p>Let's set up your learning profile to get started.</p>
-                <button onClick={() => navigate('/profile')}>Complete Profile Setup</button>
-            </div>
+            <>
+                <Header pageTitle={`Welcome to AccelerateHer!`} />
+                <div className="canvas-layout">
+                    <div className="canvas-main">
+                        <div className="dashboard-new-container">
+                            {/* Welcome Header */}
+                            <div className="dashboard-card" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                <div style={{ padding: '3rem 2rem' }}>
+                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
+                                    <h1 style={{
+                                        color: 'var(--accent)',
+                                        marginBottom: '1rem',
+                                        fontSize: '2.5rem',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Welcome to AccelerateHer!
+                                    </h1>
+                                    <p style={{
+                                        fontSize: '1.2rem',
+                                        color: '#666',
+                                        marginBottom: '2rem',
+                                        lineHeight: 1.6
+                                    }}>
+                                        Let's create your personalized learning profile to unlock your potential in tech
+                                    </p>
+                                    <button
+                                        className="primary-btn"
+                                        onClick={() => navigate('/profile')}
+                                        style={{
+                                            fontSize: '1.1rem',
+                                            padding: '1rem 2.5rem',
+                                            background: 'linear-gradient(135deg, var(--accent), #1976D2)',
+                                            border: 'none',
+                                            color: 'white',
+                                            borderRadius: '12px',
+                                            fontWeight: 'bold',
+                                            boxShadow: '0 4px 16px rgba(33, 150, 243, 0.3)',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.target.style.transform = 'translateY(-2px)';
+                                            e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.target.style.transform = 'translateY(0)';
+                                            e.target.style.boxShadow = '0 4px 16px rgba(33, 150, 243, 0.3)';
+                                        }}
+                                    >
+                                        🎯 Complete Profile Setup
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Feature Preview Cards */}
+                            <div className="dashboard-grid" style={{ marginTop: '2rem' }}>
+                                <div className="dashboard-card">
+                                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
+                                        <h3 style={{ color: 'var(--accent)', marginBottom: '1rem' }}>AI-Powered Learning</h3>
+                                        <p style={{ color: '#666', lineHeight: 1.5 }}>
+                                            Get personalized learning paths based on your goals and preferences through our AI chatbot
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="dashboard-card">
+                                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                                        <h3 style={{ color: 'var(--accent)', marginBottom: '1rem' }}>Progress Tracking</h3>
+                                        <p style={{ color: '#666', lineHeight: 1.5 }}>
+                                            Monitor your learning journey with detailed analytics and achievement tracking
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="dashboard-card">
+                                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
+                                        <h3 style={{ color: 'var(--accent)', marginBottom: '1rem' }}>Community Support</h3>
+                                        <p style={{ color: '#666', lineHeight: 1.5 }}>
+                                            Connect with other learners and get support from our vibrant tech community
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Next Steps */}
+                            <div className="dashboard-card" style={{ marginTop: '2rem' }}>
+                                <div style={{ padding: '2rem' }}>
+                                    <h3 style={{ color: 'var(--accent)', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                        🌟 What happens next?
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '1rem',
+                                            backgroundColor: '#f8f9fa',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e9ecef'
+                                        }}>
+                                            <span style={{ fontSize: '2rem', marginRight: '1rem' }}>1️⃣</span>
+                                            <div>
+                                                <strong>Chat with our AI</strong>
+                                                <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                                                    Tell us about your goals and learning preferences
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '1rem',
+                                            backgroundColor: '#f8f9fa',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e9ecef'
+                                        }}>
+                                            <span style={{ fontSize: '2rem', marginRight: '1rem' }}>2️⃣</span>
+                                            <div>
+                                                <strong>Get your learning path</strong>
+                                                <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                                                    Receive a personalized curriculum tailored to you
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '1rem',
+                                            backgroundColor: '#f8f9fa',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e9ecef'
+                                        }}>
+                                            <span style={{ fontSize: '2rem', marginRight: '1rem' }}>3️⃣</span>
+                                            <div>
+                                                <strong>Start learning!</strong>
+                                                <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                                                    Begin your journey with interactive modules
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </>
         );
     }
 
@@ -363,7 +529,7 @@ const DashboardPage = () => {
 
     return (
         <>
-            <Header pageTitle={`Welcome back, ${userProfile.userName || 'Learner'}!`} />
+            <Header pageTitle={`Welcome back, ${userProfile.userName || userProfile.user_id || 'Learner'}!`} />
             <div className="canvas-layout">
                 {/* Sidebar Navigation */}
                 <div className="canvas-sidebar">

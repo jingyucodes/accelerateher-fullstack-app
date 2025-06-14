@@ -268,20 +268,7 @@ Format as a clear, encouraging summary that feels personalized to them.`;
         }
     }, [messages, isTyping]);
 
-    // Check if user already has a profile and redirect to dashboard
-    useEffect(() => {
-        if (!contextLoading && initialProfileData) {
-            // Check if user has meaningful profile data (either userName filled or activeLearningPath exists)
-            const hasCompletedProfile = (initialProfileData.userName && initialProfileData.userName.trim() !== '') ||
-                (initialProfileData.activeLearningPath && Object.keys(initialProfileData.activeLearningPath).length > 0);
-
-            if (hasCompletedProfile) {
-                console.log('User already has a complete profile, redirecting to dashboard');
-                navigate('/dashboard');
-                return;
-            }
-        }
-    }, [contextLoading, initialProfileData, navigate]);
+    // Removed redirect logic - ProtectedRoute handles all routing
 
     // Initialize conversation
     useEffect(() => {
@@ -291,16 +278,9 @@ Format as a clear, encouraging summary that feels personalized to them.`;
             return;
         }
 
-        // Don't start profile creation if user already has a profile
-        if (!contextLoading && initialProfileData) {
-            const hasCompletedProfile = (initialProfileData.userName && initialProfileData.userName.trim() !== '') ||
-                (initialProfileData.activeLearningPath && Object.keys(initialProfileData.activeLearningPath).length > 0);
-
-            if (hasCompletedProfile) {
-                console.log('User already has profile, not starting conversation');
-                return;
-            }
-        }
+        // UserProfilePage should only handle profile creation, not redirects
+        // ProtectedRoute handles all routing logic
+        console.log('UserProfilePage loaded - letting ProtectedRoute handle routing logic');
 
         if (!contextLoading && conversationState === 'GREETING' && !hasInitialized.current && !profileCreationComplete) {
             hasInitialized.current = true;

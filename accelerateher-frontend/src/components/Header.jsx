@@ -16,15 +16,17 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
     };
 
     let titleToDisplay = pageTitle;
-    if (pageTitle && pageTitle.includes("Welcome back") && userProfile && userProfile.userName && userProfile.userName !== 'Learner') {
-        titleToDisplay = `Welcome back, ${userProfile.userName}!`;
+    const displayName = userProfile?.userName || userProfile?.user_id || 'Learner';
+    if (pageTitle && pageTitle.includes("Welcome back") && userProfile && displayName !== 'Learner') {
+        titleToDisplay = `Welcome back, ${displayName}!`;
     } else if (pageTitle && pageTitle.includes("Welcome back")) {
         titleToDisplay = `Welcome back, Learner!`;
     }
 
     const getInitials = (name) => {
-        if (!name || name === 'Learner') return 'L';
-        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        const displayName = name || userProfile?.userName || userProfile?.user_id || 'Learner';
+        if (!displayName || displayName === 'Learner') return 'L';
+        return displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
     const toggleProfileDropdown = () => {
@@ -55,7 +57,7 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                         aria-label="User menu"
                     >
                         <div className="avatar-circle">
-                            {getInitials(userProfile?.userName)}
+                            {getInitials()}
                         </div>
                         <span className="dropdown-arrow">▼</span>
                     </button>
@@ -64,10 +66,10 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                         <div className="profile-dropdown-menu">
                             <div className="profile-dropdown-header">
                                 <div className="avatar-circle large">
-                                    {getInitials(userProfile?.userName)}
+                                    {getInitials()}
                                 </div>
                                 <div className="profile-info">
-                                    <div className="profile-name">{userProfile?.userName || 'Learner'}</div>
+                                    <div className="profile-name">{userProfile?.userName || userProfile?.user_id || 'Learner'}</div>
                                     <div className="profile-goal">{userProfile?.futureSkills || 'Learning in progress'}</div>
                                 </div>
                             </div>
@@ -83,29 +85,7 @@ const Header = ({ pageTitle, showDashboardButton = false, showLogoutButton = tru
                                     }}
                                 >
                                     <span className="dropdown-icon">👤</span>
-                                    View Profile
-                                </button>
-
-                                <button
-                                    className="dropdown-item"
-                                    onClick={() => {
-                                        navigate('/profile');
-                                        setShowProfileDropdown(false);
-                                    }}
-                                >
-                                    <span className="dropdown-icon">✏️</span>
-                                    Edit Profile
-                                </button>
-
-                                <button
-                                    className="dropdown-item"
-                                    onClick={() => {
-                                        navigate('/dashboard');
-                                        setShowProfileDropdown(false);
-                                    }}
-                                >
-                                    <span className="dropdown-icon">📊</span>
-                                    Dashboard
+                                    Profile
                                 </button>
 
                                 <div className="profile-dropdown-divider"></div>

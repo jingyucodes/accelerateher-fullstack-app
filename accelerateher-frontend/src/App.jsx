@@ -12,7 +12,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import './index.css';
 
-// Updated ProtectedRoute to use authentication
+// Updated ProtectedRoute to use authentication and profile completeness
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { userProfile, loading: profileLoading, error } = useUserProfile();
@@ -25,12 +25,31 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Don't redirect to profile if we're already on the profile page
-  // or if there's an error - let the page handle it
-  // Only redirect if profile loading is complete and there's no profile
   const currentPath = window.location.pathname;
+
+  // If no profile at all, redirect to profile creation
   if (!userProfile && !error && !profileLoading && currentPath !== '/profile') {
     return <Navigate to="/profile" replace />;
+  }
+
+  // If profile exists but is incomplete, redirect to profile completion
+  // (except if already on profile page)
+  if (userProfile && currentPath !== '/profile') {
+    const hasCompletedProfile = !!(userProfile.activeLearningPath &&
+      userProfile.futureSkills &&
+      userProfile.timeCommitment);
+
+    console.log('ProtectedRoute: Profile completeness check:', {
+      hasActiveLearningPath: !!userProfile.activeLearningPath,
+      hasFutureSkills: !!userProfile.futureSkills,
+      hasTimeCommitment: !!userProfile.timeCommitment,
+      hasCompletedProfile
+    });
+
+    if (!hasCompletedProfile) {
+      console.log('ProtectedRoute: Profile incomplete, redirecting to /profile');
+      return <Navigate to="/profile" replace />;
+    }
   }
 
   return children;

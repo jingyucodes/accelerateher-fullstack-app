@@ -319,25 +319,7 @@ const UserProfileDetailPage = () => {
                         </div>
                     </div>
 
-                    <div className="profile-section">
-                        <h2>⚡ Quick Actions</h2>
-                        <div className="quick-actions-grid">
-                            <button
-                                className="action-card"
-                                onClick={() => navigate('/dashboard')}
-                            >
-                                <span className="action-icon">📊</span>
-                                <span className="action-text">Back to Dashboard</span>
-                            </button>
-                            <button
-                                className="action-card"
-                                onClick={() => navigate('/forum')}
-                            >
-                                <span className="action-icon">💬</span>
-                                <span className="action-text">Go to Forum</span>
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </>

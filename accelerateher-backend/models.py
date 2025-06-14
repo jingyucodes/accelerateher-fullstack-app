@@ -105,9 +105,6 @@ class UserProfile(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     user_id: str
     userName: str
-    bio: Optional[str] = None
-    interests: list[str] = []
-    goals: list[str] = []
     completed_modules: list[str] = []
     points: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)

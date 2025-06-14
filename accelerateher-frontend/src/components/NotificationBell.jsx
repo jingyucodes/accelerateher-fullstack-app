@@ -78,13 +78,13 @@ const NotificationBell = () => {
             }
         }
 
-        // Notification 3: Remaining modules in path
+        // Notification 3: Remaining modules in path (only if notifications enabled)
         const remainingModules = activePath.modules?.filter((module, index) => {
             const isCompleted = completedModules.includes(module.id);
             return !isCompleted;
         }) || [];
 
-        if (remainingModules.length > 0) {
+        if (remainingModules.length > 0 && shouldSendNotifications) {
             notifications.push({
                 id: 'remaining-modules',
                 type: 'info',
@@ -181,8 +181,8 @@ const NotificationBell = () => {
         return `${Math.floor(diffInMinutes / 1440)}d ago`;
     };
 
-    // Don't show notification bell if user hasn't set up profile yet
-    if (!userProfile || !user) {
+    // Don't show notification bell if user hasn't set up profile yet or has disabled notifications
+    if (!userProfile || !user || userProfile.notificationsPreference === 'No') {
         return null;
     }
 
