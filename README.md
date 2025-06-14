@@ -98,16 +98,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install fastapi uvicorn motor pymongo python-jose[cryptography] passlib[bcrypt] python-dotenv google-generativeai
 
-# Create .env file
-cp .env.example .env  # Create .env with your configuration
+# Create .env file (NEVER commit this file to git!)
+touch .env  # Create your .env file
 ```
+
+> ⚠️ **SECURITY WARNING**: Never commit `.env` files containing real credentials to git! Always use placeholder values in documentation.
 
 **Backend Environment Variables (.env):**
 ```env
-MONGODB_URL=your_mongodb_connection_string
+MONGODB_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
 DATABASE_NAME=accelerateher_db
-SECRET_KEY=your_jwt_secret_key
-GEMINI_API_KEY=your_google_gemini_api_key
+SECRET_KEY=your-super-secure-random-secret-key-here
+GEMINI_API_KEY=your-google-gemini-api-key-here
 ```
 
 ### 3. Frontend Setup
@@ -266,16 +268,16 @@ The backend provides a comprehensive REST API. Full documentation is available a
 
 **Backend (.env):**
 ```env
-MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/
+MONGODB_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
 DATABASE_NAME=accelerateher_db
-SECRET_KEY=your-super-secret-jwt-key
-ALGORITHM=HS256
+SECRET_KEY=<generate-a-secure-random-string>
+ALGORITHM=HS256  
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **Frontend (.env):**
 ```env
-VITE_GEMINI_API_KEY=your-google-gemini-api-key
+VITE_GEMINI_API_KEY=<your-google-gemini-api-key>
 ```
 
 ## 📄 License
