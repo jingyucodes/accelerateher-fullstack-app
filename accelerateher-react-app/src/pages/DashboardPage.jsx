@@ -157,18 +157,37 @@ const DashboardPage = () => {
                 <section className="dashboard-card main-card">
                     <div className="card-header">
                         <h2>🚀 Active Learning Path</h2>
-                        <button
-                            className="secondary-btn"
-                            onClick={() => navigate('/profile')}
-                        >
-                            Change Path
-                        </button>
                     </div>
                     <div className="learning-path-content">
                         <div className="path-title">
                             <h3>{activePath?.title || 'No Active Path'}</h3>
-                            <span className="progress-badge">{activePath?.progress || '0% complete'}</span>
+                            <span className="progress-badge" style={{
+                                background: activePath?.progress === '100% complete' ?
+                                    'linear-gradient(135deg, #4CAF50, #45a049)' :
+                                    'linear-gradient(135deg, #2196F3, #1976D2)',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}>
+                                {activePath?.progress === '100% complete' ? '🎉 ' : ''}
+                                {activePath?.progress || '0% complete'}
+                            </span>
                         </div>
+
+                        {activePath?.progress === '100% complete' && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                                color: 'white',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                textAlign: 'center',
+                                margin: '1rem 0',
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+                            }}>
+                                🎉 Congratulations! You've completed this learning path! 🎉
+                            </div>
+                        )}
 
                         {activePath?.modules && (
                             <ul className="module-list-new">
@@ -195,17 +214,19 @@ const DashboardPage = () => {
                                         <li
                                             key={module.id}
                                             style={{
-                                                padding: '0.75rem',
-                                                margin: '0.5rem 0',
-                                                backgroundColor: isCompleted ? '#e8f5e8' : isLocked ? '#f5f5f5' : '#fff3cd',
-                                                border: '1px solid',
-                                                borderColor: isCompleted ? '#c3e6c3' : isLocked ? '#ddd' : '#ffeaa7',
-                                                borderRadius: '8px',
+                                                padding: '1rem',
+                                                margin: '0.75rem 0',
+                                                backgroundColor: isCompleted ? '#f0f9ff' : isLocked ? '#f5f5f5' : '#fff3cd',
+                                                border: '2px solid',
+                                                borderColor: isCompleted ? '#4CAF50' : isLocked ? '#ddd' : '#ffeaa7',
+                                                borderRadius: '12px',
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 cursor: isLocked ? 'not-allowed' : 'pointer',
-                                                opacity: isLocked ? 0.6 : 1
+                                                opacity: isLocked ? 0.6 : 1,
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: isCompleted ? '0 4px 12px rgba(76, 175, 80, 0.15)' : '0 2px 8px rgba(0,0,0,0.05)'
                                             }}
                                             onClick={() => {
                                                 if (!isLocked) {
@@ -214,12 +235,13 @@ const DashboardPage = () => {
                                             }}
                                         >
                                             <span style={{
-                                                color: isLocked ? '#999' : '#333',
-                                                textDecoration: isCompleted ? 'line-through' : 'none'
+                                                color: isCompleted ? '#4CAF50' : isLocked ? '#999' : '#333',
+                                                fontWeight: isCompleted ? '600' : '500',
+                                                textDecoration: 'none'
                                             }}>
                                                 {module.title || module.text || `Module ${index + 1}`}
                                             </span>
-                                            <span>
+                                            <span style={{ fontSize: '1.2rem' }}>
                                                 {isCompleted ? '✅' : isLocked ? '🔒' : '📖'}
                                             </span>
                                         </li>
