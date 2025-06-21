@@ -8,8 +8,20 @@ from typing import Optional, Dict, List
 import logging
 import os
 from dotenv import load_dotenv
-from models import UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, ForumPost, LearningPath, LearningModule
-from database import user_profiles_collection, get_db_client, close_db_client, add_user_profile, get_user_profile, update_user_profile, add_forum_post, get_forum_posts, get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id, update_user_analytics
+from bson import ObjectId
+from models import (
+    UserProfileSchema, UserProfileInDB, User, UserCreate, UserLogin, UserResponse, 
+    LearningPath, LearningModule, ForumTopic, ForumThread, ForumThreadCreate, 
+    ForumReply, ForumReplyCreate
+)
+from database import (
+    user_profiles_collection, get_db_client, close_db_client, 
+    add_user_profile, get_user_profile, update_user_profile, 
+    get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id, 
+    update_user_analytics,
+    get_threads_by_topic, create_thread, get_thread_by_id,
+    get_replies_for_thread, create_reply
+)
 from google import genai
 
 # Configure logging
@@ -193,6 +205,17 @@ def determine_learning_path(profile_data: UserProfileSchema) -> dict:
 
     return {"activeLearningPath": path_data, "recommendedSkills": rec_skills}
 
+# Hardcoded forum topics
+forum_topics_store = [
+    { "id": "general", "name": "# General Discussion", "description": "Talk about anything and everything related to your tech journey." },
+    { "id": "python", "name": "# Python Help", "description": "Ask questions and share tips about Python." },
+    { "id": "data-analysis", "name": "# Data Analysis", "description": "Discuss data analysis techniques, libraries, and projects." },
+    { "id": "web-dev", "name": "# Web Development", "description": "All things web development: HTML, CSS, JavaScript, frameworks, and more." },
+    { "id": "cloud", "name": "# Cloud Computing", "description": "Talk about AWS, Azure, GCP, and other cloud technologies." },
+    { "id": "career", "name": "# Career Advice", "description": "Share resume tips, interview experiences, and career strategies." },
+    { "id": "feedback", "name": "# Platform Feedback", "description": "Have feedback or suggestions for the AccelerateHer platform? Share them here." },
+]
+
 # Authentication endpoints
 @app.post("/api/auth/signup", response_model=UserResponse)
 async def signup(user_data: UserCreate):
@@ -319,22 +342,87 @@ async def update_profile(
     
     return updated_profile_doc
 
-# Forum routes (protected)
-@app.get("/api/forum/posts")
-async def get_posts(current_user: User = Depends(get_current_user)):
-    return await get_forum_posts()
+# NEW FORUM ENDPOINTS
 
-@app.post("/api/forum/posts")
-async def create_post(
-    post_data: ForumPost,
+@app.get("/api/forum/topics", response_model=List[ForumTopic])
+async def get_forum_topics():
+    return forum_topics_store
+
+@app.get("/api/forum/threads/{topic_id}", response_model=List[ForumThread])
+async def get_threads_for_topic(topic_id: str, current_user: User = Depends(get_current_user)):
+    threads = await get_threads_by_topic(topic_id)
+    if threads is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch threads")
+    return threads
+
+@app.post("/api/forum/threads", response_model=ForumThread)
+async def post_new_thread(
+    thread_data: ForumThreadCreate,
     current_user: User = Depends(get_current_user)
 ):
-    post_data.user_id = current_user["user_id"]
-    return await add_forum_post(post_data.model_dump(by_alias=True))
+    user_profile = await get_user_profile(str(current_user["_id"]))
+    author_username = user_profile.get("userName", current_user["user_id"]) if user_profile else current_user["user_id"]
+    
+    new_thread_doc = {
+        "topic_id": thread_data.topic_id,
+        "title": thread_data.title,
+        "content": thread_data.content,
+        "author_user_id": str(current_user["_id"]),
+        "author_username": author_username,
+        "created_at": datetime.now(timezone.utc),
+        "last_activity_at": datetime.now(timezone.utc),
+        "replies": [],
+        "reply_count": 0
+    }
+    
+    created_thread = await create_thread(new_thread_doc)
+    if not created_thread:
+        raise HTTPException(status_code=500, detail="Failed to create thread")
+        
+    return created_thread
+
+@app.get("/api/forum/thread/{thread_id}", response_model=ForumThread)
+async def get_single_thread(thread_id: str, current_user: User = Depends(get_current_user)):
+    thread = await get_thread_by_id(thread_id)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    return thread
+
+@app.get("/api/forum/thread/{thread_id}/replies", response_model=List[ForumReply])
+async def get_replies_for_a_thread(thread_id: str, current_user: User = Depends(get_current_user)):
+    replies = await get_replies_for_thread(thread_id)
+    if replies is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch replies")
+    return replies
+
+@app.post("/api/forum/thread/{thread_id}/replies", response_model=ForumReply)
+async def post_new_reply(
+    thread_id: str,
+    reply_data: ForumReplyCreate,
+    current_user: User = Depends(get_current_user)
+):
+    user_profile = await get_user_profile(str(current_user["_id"]))
+    author_username = user_profile.get("userName", current_user["user_id"]) if user_profile else current_user["user_id"]
+
+    new_reply_doc = {
+        "thread_id": ObjectId(thread_id),
+        "content": reply_data.content,
+        "author_user_id": str(current_user["_id"]),
+        "author_username": author_username,
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    created_reply = await create_reply(new_reply_doc)
+    if not created_reply:
+        raise HTTPException(status_code=500, detail="Failed to post reply")
+    
+    return created_reply
+
+# END NEW FORUM ENDPOINTS
 
 @app.get("/")
 async def read_root():
-    return {"message": "Welcome to AccelerateHer User Profile API!"}
+    return {"message": "Welcome to the AccelerateHer API"}
 
 @app.post("/api/analytics/track-module-progress")
 async def track_module_progress(

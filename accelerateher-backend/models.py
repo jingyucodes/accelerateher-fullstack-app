@@ -9,7 +9,7 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, handler=None):
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
@@ -119,21 +119,50 @@ class UserProfile(BaseModel):
         json_encoders={ObjectId: str}
     )
 
-class ForumPost(BaseModel):
+class ForumTopic(BaseModel):
+    id: str # e.g. "general"
+    name: str # e.g. "# General Discussion"
+    description: Optional[str] = None
+
+class ForumReply(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    user_id: str
-    title: str
+    thread_id: PyObjectId
+    author_user_id: str
+    author_username: str
     content: str
-    likes: int = 0
-    comments: list[str] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
         json_encoders={ObjectId: str}
     )
+
+class ForumReplyCreate(BaseModel):
+    content: str
+
+class ForumThread(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    topic_id: str
+    title: str
+    content: str
+    author_user_id: str
+    author_username: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_activity_at: datetime = Field(default_factory=datetime.utcnow)
+    replies: Optional[List[ForumReply]] = []
+    reply_count: int = 0
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str}
+    )
+
+class ForumThreadCreate(BaseModel):
+    topic_id: str
+    title: str
+    content: str
 
 class UserProfileSchema(BaseModel):
     userName: Optional[str] = None

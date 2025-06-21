@@ -41,7 +41,8 @@ logger.info(f"--- END DEBUG (database.py after client init) ---")
 db = client[DATABASE_NAME_FROM_ENV]
 user_profiles_collection = db["user_profiles"]
 users_collection = db["users"]
-forum_posts_collection = db["forum_posts"]
+forum_threads_collection = db["forum_threads"]
+forum_replies_collection = db["forum_replies"]
 
 async def get_db_client():
     return client, MONGODB_URL_FROM_ENV
@@ -132,18 +133,52 @@ async def update_user_analytics(user_id: str, analytics_data: dict):
         return None
 
 # Forum operations
-async def add_forum_post(post_data: dict):
+async def get_threads_by_topic(topic_id: str):
     try:
-        result = await forum_posts_collection.insert_one(post_data)
-        return await forum_posts_collection.find_one({"_id": result.inserted_id})
-    except Exception as e:
-        logger.error(f"Error adding forum post: {e}")
-        return None
-
-async def get_forum_posts():
-    try:
-        cursor = forum_posts_collection.find().sort("created_at", -1)
+        cursor = forum_threads_collection.find({"topic_id": topic_id}).sort("last_activity_at", -1)
         return await cursor.to_list(length=None)
     except Exception as e:
-        logger.error(f"Error getting forum posts: {e}")
+        logger.error(f"Error getting threads for topic {topic_id}: {e}")
         return []
+
+async def create_thread(thread_data: dict):
+    try:
+        result = await forum_threads_collection.insert_one(thread_data)
+        return await forum_threads_collection.find_one({"_id": result.inserted_id})
+    except Exception as e:
+        logger.error(f"Error creating forum thread: {e}")
+        return None
+
+async def get_thread_by_id(thread_id: str):
+    try:
+        return await forum_threads_collection.find_one({"_id": ObjectId(thread_id)})
+    except Exception as e:
+        logger.error(f"Error getting thread by id {thread_id}: {e}")
+        return None
+
+async def get_replies_for_thread(thread_id: str):
+    try:
+        cursor = forum_replies_collection.find({"thread_id": ObjectId(thread_id)}).sort("created_at", 1)
+        return await cursor.to_list(length=None)
+    except Exception as e:
+        logger.error(f"Error getting replies for thread {thread_id}: {e}")
+        return []
+
+async def create_reply(reply_data: dict):
+    try:
+        # Insert the new reply
+        result = await forum_replies_collection.insert_one(reply_data)
+        if result.inserted_id:
+            # Update the parent thread's last_activity_at and increment reply_count
+            await forum_threads_collection.update_one(
+                {"_id": reply_data["thread_id"]},
+                {
+                    "$set": {"last_activity_at": reply_data["created_at"]},
+                    "$inc": {"reply_count": 1}
+                }
+            )
+            return await forum_replies_collection.find_one({"_id": result.inserted_id})
+        return None
+    except Exception as e:
+        logger.error(f"Error creating reply: {e}")
+        return None

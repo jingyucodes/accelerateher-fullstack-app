@@ -418,7 +418,8 @@ const DashboardPage = () => {
                     </div>
                 </section>
 
-                {/* Quick Actions */}
+                {/* Quick Actions - DISABLED */}
+                {/* 
                 <section className="dashboard-card">
                     <div className="card-header">
                         <h2>🚀 Quick Actions</h2>
@@ -454,6 +455,7 @@ const DashboardPage = () => {
                         </button>
                     </div>
                 </section>
+                */}
             </div>
         </>
     );
