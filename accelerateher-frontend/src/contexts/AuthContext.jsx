@@ -98,24 +98,39 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('authToken');
 
+        console.log('AuthContext initialization - checking stored auth:', {
+            hasUser: !!storedUser,
+            hasToken: !!storedToken
+        });
+
         if (storedUser && storedToken) {
             try {
                 const tokenParts = storedToken.split('.');
                 if (tokenParts.length === 3) {
                     const payload = JSON.parse(atob(tokenParts[1]));
                     const expTime = payload.exp * 1000;
+                    const now = Date.now();
 
-                    if (expTime > Date.now()) {
+                    // Give 10 minutes buffer before auto-logout
+                    if (expTime > (now - 600000)) {
+                        console.log('Token is valid, restoring user session');
                         setUser(JSON.parse(storedUser));
                     } else {
+                        console.log('Token expired, clearing session');
                         logout();
                     }
+                } else {
+                    console.log('Invalid token format, clearing session');
+                    logout();
                 }
             } catch (err) {
+                console.error('Error parsing stored auth data:', err);
                 logout();
             }
         } else {
-            logout();
+            console.log('No stored auth data found');
+            // Don't call logout() here as it might clear valid data
+            setUser(null);
         }
     }, []);
 

@@ -72,6 +72,11 @@ class ModuleProgress(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     time_spent_minutes: int = 0
+    actual_watch_time_minutes: int = 0
+    actual_reading_time_minutes: int = 0
+    reading_progress_percentage: float = 0.0
+    reference_reading_time_minutes: int = 0
+    reference_reading_progress_percentage: float = 0.0
     attempts: int = 0
     quiz_score: Optional[float] = None
     last_accessed: Optional[datetime] = None
@@ -112,6 +117,7 @@ class UserProfile(BaseModel):
     activeLearningPath: Optional[LearningPath] = None
     recommendedSkills: List[str] = []
     analytics: Optional[LearningAnalytics] = None
+    showOnLeaderboard: bool = True
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -175,6 +181,7 @@ class UserProfileSchema(BaseModel):
     notificationsPreference: Optional[str] = ""
     activeLearningPath: Optional[LearningPath] = None
     recommendedSkills: List[str] = []
+    showOnLeaderboard: Optional[bool] = True
 
     model_config = ConfigDict(
         populate_by_name=True,

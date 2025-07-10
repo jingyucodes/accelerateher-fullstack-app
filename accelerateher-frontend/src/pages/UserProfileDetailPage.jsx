@@ -198,8 +198,47 @@ const UserProfileDetailPage = () => {
                     </div>
 
                     <div className="profile-section">
-                        <h2>📋 Personal Information</h2>
+                        <h2>Personal Reference</h2>
                         <div className="profile-fields">
+                            <div className="field-group">
+                                <label htmlFor="showOnLeaderboardEdit" style={{ margin: 0, fontWeight: 500 }}>Include in Leaderboard</label>
+                                {isEditing ? (
+                                    <label style={{ display: 'inline-block', position: 'relative', width: '48px', height: '28px', verticalAlign: 'middle' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="showOnLeaderboardEdit"
+                                            checked={editedProfile.showOnLeaderboard !== false}
+                                            onChange={e => handleInputChange('showOnLeaderboard', e.target.checked)}
+                                            style={{ opacity: 0, width: 0, height: 0 }}
+                                        />
+                                        <span style={{
+                                            position: 'absolute',
+                                            cursor: 'pointer',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            background: editedProfile.showOnLeaderboard !== false ? '#4caf50' : '#ccc',
+                                            borderRadius: '28px',
+                                            transition: 'background 0.2s',
+                                            display: 'block'
+                                        }}></span>
+                                        <span style={{
+                                            position: 'absolute',
+                                            left: editedProfile.showOnLeaderboard !== false ? '22px' : '2px',
+                                            top: '2px',
+                                            width: '24px',
+                                            height: '24px',
+                                            background: '#fff',
+                                            borderRadius: '50%',
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                                            transition: 'left 0.2s'
+                                        }}></span>
+                                    </label>
+                                ) : (
+                                    <div className="field-value">{userProfile?.showOnLeaderboard === false ? 'Not included' : 'Included'}</div>
+                                )}
+                            </div>
                             <div className="field-group">
                                 <label htmlFor="notificationsPreferenceEdit">Notification Preferences</label>
                                 {isEditing ? (

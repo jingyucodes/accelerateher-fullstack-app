@@ -15,9 +15,11 @@ export const UserProfileProvider = ({ children }) => {
     const { user, logout } = useAuth();
 
     const handleUnauthorized = useCallback(() => {
-        console.log('Unauthorized access, logging out');
-        logout();
-    }, [logout]);
+        console.log('Unauthorized access detected - may need to refresh auth');
+        // Don't immediately logout, give user a chance to refresh or navigate
+        setError('Authentication may have expired. Please refresh the page or login again.');
+        // Only logout after user action or multiple failed attempts
+    }, []);
 
     const fetchUserProfile = useCallback(async (userId) => {
         console.log('fetchUserProfile called with userId:', userId);
@@ -39,8 +41,9 @@ export const UserProfileProvider = ({ children }) => {
             console.log('Token found:', !!token);
 
             if (!token) {
-                console.log('No token found, calling handleUnauthorized');
-                handleUnauthorized();
+                console.log('No token found, skipping profile fetch');
+                setUserProfileState(null);
+                setLoading(false);
                 return;
             }
 
@@ -61,8 +64,9 @@ export const UserProfileProvider = ({ children }) => {
                 console.log('Profile data received:', data);
                 setUserProfileState(data);
             } else if (response.status === 401) {
-                console.log('401 Unauthorized, calling handleUnauthorized');
-                handleUnauthorized();
+                console.log('401 Unauthorized - will retry on next navigation');
+                setError('Authentication expired. Please refresh or login again.');
+                setUserProfileState(null);
             } else if (response.status === 404) {
                 console.log('404 Profile not found');
                 setUserProfileState(null);
@@ -79,7 +83,7 @@ export const UserProfileProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [handleUnauthorized]);
+    }, []);
 
     useEffect(() => {
         console.log('UserProfileContext useEffect triggered:', { user, userId: user?.id });
@@ -106,7 +110,8 @@ export const UserProfileProvider = ({ children }) => {
         try {
             const token = localStorage.getItem('authToken');
             if (!token) {
-                handleUnauthorized();
+                setError('No authentication token available');
+                setLoading(false);
                 return null;
             }
 
@@ -124,7 +129,7 @@ export const UserProfileProvider = ({ children }) => {
                 setUserProfileState(savedData);
                 return savedData;
             } else if (response.status === 401) {
-                handleUnauthorized();
+                setError('Authentication expired. Please refresh or login again.');
                 return null;
             } else {
                 const errData = await response.json();

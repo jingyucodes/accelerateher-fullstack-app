@@ -18,7 +18,7 @@ from database import (
     user_profiles_collection, get_db_client, close_db_client, 
     add_user_profile, get_user_profile, update_user_profile, 
     get_user_by_user_id, create_user, get_user_by_id as get_user_by_mongodb_id, 
-    update_user_analytics,
+    update_user_analytics, get_all_user_profiles,
     get_threads_by_topic, create_thread, get_thread_by_id,
     get_replies_for_thread, create_reply
 )
@@ -42,7 +42,8 @@ app = FastAPI(title="AccelerateHer User Profile API")
 
 # CORS (Cross-Origin Resource Sharing)
 origins = [
-    "http://localhost:5173",  # Local development
+    "http://localhost:5173",  # Local development (original)
+    "http://localhost:5174",  # Local development (AccelerateHer)
     "http://localhost:3000",  # Local development alternative port
     "https://your-frontend-domain.com",  # Your deployed frontend URL
     "*"  # Allow all origins (only for development, remove in production)
@@ -437,6 +438,13 @@ async def track_module_progress(
 
         module_id = module_data.get("module_id")
         time_spent = module_data.get("time_spent_minutes", 0)
+        actual_watch_time = module_data.get("actual_watch_time_minutes", 0)
+        actual_reading_time = module_data.get("actual_reading_time_minutes", 0)
+        video_progress = module_data.get("video_progress_percentage", 0.0)
+        reading_progress = module_data.get("reading_progress_percentage", 0.0)
+        is_reference = module_data.get("is_reference", False)
+        reference_reading_time = module_data.get("reference_reading_time_minutes", 0)
+        reference_reading_progress = module_data.get("reference_reading_progress_percentage", 0.0)
         is_completed = module_data.get("completed", False)
         quiz_score = module_data.get("quiz_score")
 
@@ -470,11 +478,39 @@ async def track_module_progress(
                 "module_id": module_id,
                 "started_at": datetime.utcnow(),
                 "time_spent_minutes": 0,
+                "actual_watch_time_minutes": 0,
+                "actual_reading_time_minutes": 0,
+                "reading_progress_percentage": 0.0,
+                "reference_reading_time_minutes": 0,
+                "reference_reading_progress_percentage": 0.0,
+                "video_progress_percentage": 0.0,
                 "attempts": 0
             }
 
         module_progress = analytics["module_progress"][module_id]
         module_progress["time_spent_minutes"] += time_spent
+        
+        # Update actual watch time and video progress (these are absolute values, not cumulative)
+        if actual_watch_time > 0:
+            module_progress["actual_watch_time_minutes"] = actual_watch_time
+        if actual_reading_time > 0:
+            module_progress["actual_reading_time_minutes"] = actual_reading_time
+        if video_progress > 0:
+            module_progress["video_progress_percentage"] = video_progress
+        if reading_progress > 0:
+            module_progress["reading_progress_percentage"] = reading_progress
+        
+        if is_reference:
+            if actual_reading_time > 0:
+                module_progress["reference_reading_time_minutes"] = actual_reading_time
+            if reading_progress > 0:
+                module_progress["reference_reading_progress_percentage"] = reading_progress
+        else:
+            if actual_reading_time > 0:
+                module_progress["actual_reading_time_minutes"] = actual_reading_time
+            if reading_progress > 0:
+                module_progress["reading_progress_percentage"] = reading_progress
+        
         module_progress["last_accessed"] = datetime.utcnow()
         
         if is_completed:
@@ -553,10 +589,16 @@ async def track_module_progress(
         if quiz_score is not None:
             module_progress["quiz_score"] = quiz_score
 
-        # Update weekly progress
+        # Update weekly progress (include both video and reading time)
         weekly_hours = time_spent / 60  # Convert minutes to hours
-        analytics["current_week"]["completed_hours"] += weekly_hours
-        analytics["current_month"]["total_hours"] += weekly_hours
+        reading_hours = actual_reading_time / 60 if actual_reading_time > 0 else 0
+        
+        # For time tracking, we want to include the new reading time but avoid double counting
+        # We'll use the time_spent for video activities and reading_hours for reading activities
+        total_session_hours = weekly_hours + reading_hours
+        
+        analytics["current_week"]["completed_hours"] += total_session_hours
+        analytics["current_month"]["total_hours"] += total_session_hours
 
         # Recalculate analytics based on current learning path modules
         learning_path_modules = user_profile.get("activeLearningPath", {}).get("modules", [])
@@ -809,6 +851,93 @@ async def reset_streak(current_user: User = Depends(get_current_user)):
 
     except Exception as e:
         logger.error(f"Error resetting streak: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/leaderboard")
+async def get_leaderboard(current_user: User = Depends(get_current_user)):
+    """Get leaderboard data for all users"""
+    try:
+        # Get all user profiles
+        all_profiles = await get_all_user_profiles()
+        # 只保留showOnLeaderboard为True或未设置的用户
+        all_profiles = [p for p in all_profiles if p.get('showOnLeaderboard', True)]
+        logger.info(f"Found {len(all_profiles)} user profiles for leaderboard")
+        
+        leaderboard_data = []
+        
+        for profile in all_profiles:
+            # Skip profiles without basic data
+            if not profile.get("userName") and not profile.get("user_id"):
+                continue
+                
+            # Extract user data
+            username = profile.get("userName") or profile.get("user_id", "Unknown User")
+            completed_modules = profile.get("completed_modules", [])
+            
+            # Calculate points - if no points field, calculate based on completed modules
+            points = profile.get("points", 0)
+            if points == 0 and completed_modules:
+                # Award 100 points per completed module
+                points = len(completed_modules) * 100
+            
+            # Extract analytics data
+            analytics = profile.get("analytics", {})
+            current_month = analytics.get("current_month", {})
+            
+            # Calculate learning hours
+            learning_hours = current_month.get("total_hours", 0)
+            if learning_hours == 0 and completed_modules:
+                # Estimate hours based on completed modules (assume 10 hours per module)
+                learning_hours = len(completed_modules) * 10
+            
+            # Get streak days
+            streak_days = current_month.get("streak_days", 0)
+            if streak_days == 0 and completed_modules:
+                # Give at least 1 day streak if they have completed modules
+                streak_days = 1
+            
+            # Generate avatar initials
+            avatar = username.split(' ')[0][:2].upper() if username else "UN"
+            if len(avatar) == 1:
+                avatar = username[:2].upper()
+            
+            # Determine if this is the current user
+            is_current_user = str(profile.get("_id")) == str(current_user["_id"])
+            
+            # Get join date
+            join_date = profile.get("created_at")
+            if isinstance(join_date, str):
+                join_date = join_date[:10]  # Get just the date part
+            elif join_date:
+                join_date = join_date.strftime("%Y-%m-%d")
+            else:
+                join_date = "2024-01-01"  # Default date
+            
+            leaderboard_entry = {
+                "username": username,
+                "avatar": avatar,
+                "points": points,
+                "completedModules": len(completed_modules),
+                "hoursLearned": int(learning_hours),
+                "streak": streak_days,
+                "region": "Singapore",  # Default region, could be made configurable
+                "joinDate": join_date,
+                "isCurrentUser": is_current_user
+            }
+            
+            leaderboard_data.append(leaderboard_entry)
+        
+        logger.info(f"Processed {len(leaderboard_data)} valid user profiles for leaderboard")
+        
+        # Sort by points (default) and add ranks
+        leaderboard_data.sort(key=lambda x: x["points"], reverse=True)
+        for i, entry in enumerate(leaderboard_data):
+            entry["rank"] = i + 1
+        
+        return leaderboard_data
+        
+    except Exception as e:
+        logger.error(f"Error getting leaderboard data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # To run the server: uvicorn main:app --reload

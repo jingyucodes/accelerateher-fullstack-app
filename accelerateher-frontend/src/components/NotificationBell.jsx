@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useAuth } from '../contexts/AuthContext';
 
-const NotificationBell = () => {
+// 新增：导出全局通知管理钩子
+export const notificationBellRef = { push: null };
+
+const NotificationBell = ({ externalNotifications, setExternalNotifications }) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -121,14 +124,34 @@ const NotificationBell = () => {
         return notifications;
     };
 
-    // Update notifications when user profile changes
+    // 新增：允许外部推送消息
+    useEffect(() => {
+        notificationBellRef.push = (notification) => {
+            setNotifications(prev => [
+                { ...notification, id: notification.id || (Date.now() + Math.random()), isRead: false, timestamp: new Date().toISOString() },
+                ...prev
+            ]);
+        };
+        return () => { notificationBellRef.push = null; };
+    }, []);
+
+    // 合并自动生成和外部推送的通知
     useEffect(() => {
         if (userProfile) {
-            const newNotifications = generateLearningNotifications();
-            setNotifications(newNotifications);
-            setUnreadCount(newNotifications.filter(n => !n.isRead).length);
+            const autoNotifications = generateLearningNotifications();
+            setNotifications(prev => {
+                // 只添加新生成且id不重复的自动通知
+                const prevIds = new Set(prev.map(n => n.id));
+                const newAuto = autoNotifications.filter(n => !prevIds.has(n.id));
+                return [...newAuto, ...prev];
+            });
         }
     }, [userProfile]);
+
+    // 动态计算未读数量
+    useEffect(() => {
+        setUnreadCount(notifications.filter(n => !n.isRead).length);
+    }, [notifications]);
 
     // Close notifications when clicking outside
     useEffect(() => {

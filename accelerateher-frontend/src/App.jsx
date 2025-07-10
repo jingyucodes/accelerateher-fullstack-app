@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import ModulePage from './pages/ModulePage';
 import ForumPage from './pages/ForumPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import UserProfilePage from './pages/UserProfilePage';
 import UserProfileDetailPage from './pages/UserProfileDetailPage';
 import ThreadDetailPage from './pages/ThreadDetailPage';
@@ -43,6 +44,10 @@ function App() {
                 element={<PrivateRoute><ModulePage /></PrivateRoute>}
               />
               <Route
+                path="/module/:moduleId"
+                element={<PrivateRoute><ModulePage /></PrivateRoute>}
+              />
+              <Route
                 path="/forum"
                 element={<PrivateRoute><ForumPage /></PrivateRoute>}
               />
@@ -51,8 +56,16 @@ function App() {
                 element={<PrivateRoute><ThreadDetailPage /></PrivateRoute>}
               />
               <Route
+                path="/leaderboard"
+                element={<PrivateRoute><LeaderboardPage /></PrivateRoute>}
+              />
+              <Route
                 path="/profile"
                 element={<PrivateRoute><UserProfilePage /></PrivateRoute>}
+              />
+              <Route
+                path="/profile-details"
+                element={<PrivateRoute><UserProfileDetailPage /></PrivateRoute>}
               />
               <Route
                 path="/user-profile/:userId"

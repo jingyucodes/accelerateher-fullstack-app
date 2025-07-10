@@ -132,6 +132,15 @@ async def update_user_analytics(user_id: str, analytics_data: dict):
         logger.error(f"Error updating analytics for user profile _id {user_id}: {e}")
         return None
 
+async def get_all_user_profiles():
+    """Get all user profiles for leaderboard"""
+    try:
+        cursor = user_profiles_collection.find({})
+        return await cursor.to_list(length=None)
+    except Exception as e:
+        logger.error(f"Error getting all user profiles: {e}")
+        return []
+
 # Forum operations
 async def get_threads_by_topic(topic_id: str):
     try:

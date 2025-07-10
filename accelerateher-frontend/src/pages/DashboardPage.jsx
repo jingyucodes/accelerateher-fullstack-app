@@ -342,16 +342,17 @@ const DashboardPage = () => {
 
                         {activePath?.progress === '100% complete' && (
                             <div style={{
-                                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                                color: 'white',
+                                background: 'white',
+                                color: '#333',
                                 padding: '1rem',
                                 borderRadius: '8px',
                                 textAlign: 'center',
                                 margin: '1rem 0',
                                 fontWeight: 'bold',
-                                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+                                border: '2px solid #e0e0e0',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                             }}>
-                                🎉 Congratulations! You've completed this learning path! 🎉
+                                🎉 Congratulations! You've completed this learning path! ✅
                             </div>
                         )}
 
@@ -382,9 +383,9 @@ const DashboardPage = () => {
                                             style={{
                                                 padding: '1rem',
                                                 margin: '0.75rem 0',
-                                                backgroundColor: isCompleted ? '#f0f9ff' : isLocked ? '#f5f5f5' : '#fff3cd',
+                                                backgroundColor: isCompleted ? 'white' : isLocked ? '#f5f5f5' : '#fff3cd',
                                                 border: '2px solid',
-                                                borderColor: isCompleted ? '#4CAF50' : isLocked ? '#ddd' : '#ffeaa7',
+                                                borderColor: isCompleted ? '#e0e0e0' : isLocked ? '#ddd' : '#ffeaa7',
                                                 borderRadius: '12px',
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
@@ -392,7 +393,7 @@ const DashboardPage = () => {
                                                 cursor: isLocked ? 'not-allowed' : 'pointer',
                                                 opacity: isLocked ? 0.6 : 1,
                                                 transition: 'all 0.2s ease',
-                                                boxShadow: isCompleted ? '0 4px 12px rgba(76, 175, 80, 0.15)' : '0 2px 8px rgba(0,0,0,0.05)'
+                                                boxShadow: isCompleted ? '0 2px 8px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.05)'
                                             }}
                                             onClick={() => {
                                                 if (!isLocked) {
@@ -401,7 +402,7 @@ const DashboardPage = () => {
                                             }}
                                         >
                                             <span style={{
-                                                color: isCompleted ? '#4CAF50' : isLocked ? '#999' : '#333',
+                                                color: isCompleted ? '#333' : isLocked ? '#999' : '#333',
                                                 fontWeight: isCompleted ? '600' : '500',
                                                 textDecoration: 'none'
                                             }}>
@@ -503,7 +504,10 @@ const DashboardPage = () => {
                 <button
                     className="primary-btn"
                     style={{ fontSize: '0.8rem', padding: '5px 10px' }}
-                    onClick={() => navigate('/forum')}
+                    onClick={() => {
+                        console.log('Go to Full Forum button clicked');
+                        navigate('/forum');
+                    }}
                 >
                     Go to Full Forum
                 </button>
@@ -552,11 +556,26 @@ const DashboardPage = () => {
                         </button>
                         <button
                             className={`sidebar-item ${activeView === 'forum' ? 'active' : ''}`}
-                            onClick={() => setActiveView('forum')}
+                            onClick={() => {
+                                console.log('Forum sidebar button clicked');
+                                navigate('/forum');
+                            }}
                         >
                             <span className="sidebar-icon">💬</span>
                             Forum
                         </button>
+                        {userProfile?.showOnLeaderboard !== false && (
+                            <button
+                                className="sidebar-item"
+                                onClick={() => {
+                                    console.log('Leaderboard sidebar button clicked');
+                                    navigate('/leaderboard');
+                                }}
+                            >
+                                <span className="sidebar-icon">🏆</span>
+                                Leaderboard
+                            </button>
+                        )}
                     </div>
                 </div>
 
