@@ -447,6 +447,8 @@ async def track_module_progress(
         reference_reading_progress = module_data.get("reference_reading_progress_percentage", 0.0)
         is_completed = module_data.get("completed", False)
         quiz_score = module_data.get("quiz_score")
+        quiz_time_spent = module_data.get("quiz_time_spent_minutes")
+        quiz_passed = module_data.get("quiz_passed")
 
         # Initialize analytics if not exists
         analytics = user_profile.get("analytics") or {
@@ -588,6 +590,13 @@ async def track_module_progress(
 
         if quiz_score is not None:
             module_progress["quiz_score"] = quiz_score
+            module_progress["quiz_attempts"] = module_progress.get("quiz_attempts", 0) + 1
+        
+        if quiz_time_spent is not None:
+            module_progress["quiz_time_spent_minutes"] = quiz_time_spent
+            
+        if quiz_passed is not None:
+            module_progress["quiz_passed"] = quiz_passed
 
         # Update weekly progress (include both video and reading time)
         weekly_hours = time_spent / 60  # Convert minutes to hours

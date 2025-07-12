@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import ReadingTracker from '../components/ReadingTracker';
+import Quiz from '../components/Quiz';
 import { modulesData } from '../data/mockData';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,7 +24,10 @@ const ModulePage = () => {
     const [readingProgress, setReadingProgress] = useState(0); // 阅读进度 0-100%
     const [youtubeApiReady, setYoutubeApiReady] = useState(false); // Track YouTube API readiness
     const [progressRestored, setProgressRestored] = useState(false); // Track if progress was restored
-    const [activeTab, setActiveTab] = useState('video'); // 当前活跃标签页: 'video' 或 'reading'
+    const [activeTab, setActiveTab] = useState('video'); // 当前活跃标签页: 'video', 'reading', 'reference', 或 'quiz'
+    const [showQuiz, setShowQuiz] = useState(false);
+    const [quizCompleted, setQuizCompleted] = useState(false);
+    const [quizScore, setQuizScore] = useState(null);
 
     // YouTube Player相关状态
     const playerRef = useRef(null);
@@ -42,6 +46,15 @@ const ModulePage = () => {
             // Check if module is completed based on completed_modules list
             const isModuleCompleted = userProfile.completed_modules?.includes(moduleId) || false;
             setIsCompleted(isModuleCompleted);
+
+            // Load quiz score if available
+            if (userProfile.analytics && userProfile.analytics.module_progress) {
+                const progress = userProfile.analytics.module_progress[moduleId] || {};
+                if (progress.quiz_score !== undefined) {
+                    setQuizScore(progress.quiz_score);
+                    setQuizCompleted(true);
+                }
+            }
 
             // Load actual watch time and reading time from analytics if available
             if (userProfile.analytics && userProfile.analytics.module_progress) {
@@ -517,11 +530,12 @@ const ModulePage = () => {
     // 计算阅读材料的预计时间
     const estimatedReadingTime = moduleInfo.readingContent ? (moduleInfo.readingContent.estimatedReadingTime || 0) : 0;
 
-    // 完成按钮可用条件
+    // 完成按钮可用条件 - 现在需要完成quiz
     const canMarkComplete =
         videoProgress >= 20 &&
         readingProgress === 100 &&
-        actualReadingTime >= estimatedReadingTime;
+        actualReadingTime >= estimatedReadingTime &&
+        quizCompleted;
 
     // summary区域合并统计
     const totalReadingTime = actualReadingTime + referenceReadingTime;
@@ -560,6 +574,14 @@ const ModulePage = () => {
                                 onClick={() => setActiveTab('reference')}
                             >
                                 📖 Reference Reading
+                            </button>
+                        )}
+                        {moduleInfo.quiz && (
+                            <button
+                                className={`tab-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('quiz')}
+                            >
+                                🎯 Quiz {quizCompleted && quizScore !== null ? `(${quizScore}%)` : ''}
                             </button>
                         )}
                     </div>
@@ -653,6 +675,76 @@ const ModulePage = () => {
                     />
                 )}
 
+                {/* Quiz标签页内容 */}
+                {!moduleInfo.error && moduleInfo.quiz && activeTab === 'quiz' && (
+                    <div className="quiz-tab-content">
+                        {!showQuiz ? (
+                            <div className="quiz-intro">
+                                <h3>🎯 {moduleInfo.quiz.title}</h3>
+                                <p>{moduleInfo.quiz.description}</p>
+
+                                <div className="quiz-info">
+                                    <div className="info-item">
+                                        <span className="info-label">📝 Questions:</span>
+                                        <span className="info-value">{moduleInfo.quiz.questions.length}</span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label">⏱️ Time Limit:</span>
+                                        <span className="info-value">{moduleInfo.quiz.timeLimit} minutes</span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label">🎯 Passing Score:</span>
+                                        <span className="info-value">{moduleInfo.quiz.passingScore}%</span>
+                                    </div>
+                                </div>
+
+                                {quizCompleted && quizScore !== null && (
+                                    <div className={`quiz-completed-info ${quizScore >= moduleInfo.quiz.passingScore ? 'passed' : 'failed'}`}>
+                                        <h4>✅ Quiz Completed</h4>
+                                        <p>Your score: <strong>{quizScore}%</strong></p>
+                                        <p>Status: <strong>{quizScore >= moduleInfo.quiz.passingScore ? 'Passed' : 'Failed'}</strong></p>
+                                    </div>
+                                )}
+
+                                <div className="quiz-actions">
+                                    {!quizCompleted ? (
+                                        <button
+                                            className="primary-btn"
+                                            onClick={() => setShowQuiz(true)}
+                                        >
+                                            🚀 Start Quiz
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="secondary-btn"
+                                            onClick={() => setShowQuiz(true)}
+                                        >
+                                            🔄 Retake Quiz
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <Quiz
+                                moduleId={moduleId}
+                                quizData={moduleInfo.quiz}
+                                onQuizComplete={(result) => {
+                                    setQuizCompleted(true);
+                                    setQuizScore(result.score);
+                                    setShowQuiz(false);
+
+                                    // Refresh user profile to get updated analytics
+                                    if (userProfile) {
+                                        fetchUserProfile(userProfile._id || userProfile.user_id);
+                                    }
+                                }}
+                                onQuizClose={() => setShowQuiz(false)}
+                                isAuthenticated={isAuthenticated}
+                            />
+                        )}
+                    </div>
+                )}
+
                 {!moduleInfo.error && moduleInfo.references && moduleInfo.references.length > 0 && activeTab === 'video' && (
                     <>
                         <h3>Reference Materials & Books</h3>
@@ -737,6 +829,7 @@ const ModulePage = () => {
                                         <li>Watch at least 20% of the video ({videoProgress.toFixed(1)}% watched)</li>
                                         <li>Finish all reading materials ({readingProgress.toFixed(1)}% read)</li>
                                         <li>Spend at least {estimatedReadingTime} minutes reading (You: {actualReadingTime} minutes)</li>
+                                        <li>Complete the quiz with a passing score</li>
                                     </ul>
                                 </p>
                             )}

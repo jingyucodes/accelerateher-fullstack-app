@@ -79,6 +79,9 @@ class ModuleProgress(BaseModel):
     reference_reading_progress_percentage: float = 0.0
     attempts: int = 0
     quiz_score: Optional[float] = None
+    quiz_time_spent_minutes: Optional[int] = None
+    quiz_passed: Optional[bool] = None
+    quiz_attempts: int = 0
     last_accessed: Optional[datetime] = None
 
 class WeeklyProgress(BaseModel):

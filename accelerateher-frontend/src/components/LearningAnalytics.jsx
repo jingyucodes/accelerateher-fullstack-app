@@ -138,6 +138,11 @@ const LearningAnalytics = () => {
                                         <span className="reading-time">📚 {progress.actual_reading_time_minutes || 0}min</span>
                                         <span className="video-progress">Video: {(progress.video_progress_percentage || 0).toFixed(1)}%</span>
                                         <span className="reading-progress">Reading: {(progress.reading_progress_percentage || 0).toFixed(1)}%</span>
+                                        {progress.quiz_score !== undefined && (
+                                            <span className={`quiz-score ${progress.quiz_passed ? 'passed' : 'failed'}`}>
+                                                🎯 Quiz: {progress.quiz_score}%
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );
