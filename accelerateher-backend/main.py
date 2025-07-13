@@ -518,19 +518,17 @@ async def track_module_progress(
         if is_completed:
             module_progress["completed_at"] = datetime.utcnow()
             completed_modules = user_profile.get("completed_modules", [])
-            
             if module_id not in completed_modules:
                 # Add module to completed list
                 completed_modules.append(module_id)
                 logger.info(f"Adding module {module_id} to completed list for user {str(current_user['_id'])}")
-                
                 # IMPORTANT: Update the main profile with completed modules immediately
                 await update_user_profile(str(current_user["_id"]), {"completed_modules": completed_modules})
                 logger.info(f"Updated main profile with completed modules: {completed_modules}")
             else:
-                # Module already completed, don't track additional progress
-                logger.info(f"Module {module_id} already completed for user {str(current_user['_id'])}")
-                return {"status": "success", "message": "Module already completed"}
+                # Module already completed, don't add again, 但允许继续更新quiz分数等
+                logger.info(f"Module {module_id} already completed for user {str(current_user['_id'])}, updating quiz info if present")
+            # 不要return，继续往下走，允许quiz分数等字段更新
                 
                 # Update learning path modules with completion status
                 if user_profile.get("activeLearningPath") and user_profile["activeLearningPath"].get("modules"):

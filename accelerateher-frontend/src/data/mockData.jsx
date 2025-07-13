@@ -651,6 +651,420 @@ area3 = calculate_area(width=4, length=6)  # Named arguments
         videoId: "r4YIdn2eTm4",
         references: [{ text: "AWS Core Services Overview", url: "https://aws.amazon.com/products/" }],
         topics: ["EC2 (Elastic Compute Cloud)", "S3 (Simple Storage Service)", "VPC (Virtual Private Cloud)", "IAM (Identity and Access Management)"],
+        readingContent: {
+            estimatedReadingTime: 35, // 预计阅读时间（分钟）
+            sections: [
+                {
+                    title: "Introduction to AWS Core Services",
+                    content: `
+                        <h3>What is AWS?</h3>
+                        <p>Amazon Web Services (AWS) is the world's most comprehensive and broadly adopted cloud platform, offering over 200 fully featured services from data centers globally. AWS provides a mix of infrastructure as a service (IaaS), platform as a service (PaaS), and packaged software as a service (SaaS) offerings.</p>
+                        
+                        <h3>Why Learn AWS Core Services?</h3>
+                        <ul>
+                            <li><strong>Market Leader:</strong> AWS holds the largest market share in cloud computing</li>
+                            <li><strong>Career Opportunities:</strong> High demand for AWS-certified professionals</li>
+                            <li><strong>Scalability:</strong> Build applications that can scale from 1 to millions of users</li>
+                            <li><strong>Cost-Effective:</strong> Pay only for what you use with no upfront costs</li>
+                            <li><strong>Global Infrastructure:</strong> Deploy applications closer to your users worldwide</li>
+                        </ul>
+                        
+                        <h3>AWS Global Infrastructure</h3>
+                        <p>AWS operates in multiple geographic regions, each containing multiple Availability Zones. This design provides:</p>
+                        <ul>
+                            <li><strong>High Availability:</strong> Applications can be deployed across multiple AZs</li>
+                            <li><strong>Fault Tolerance:</strong> If one AZ fails, others continue operating</li>
+                            <li><strong>Low Latency:</strong> Deploy closer to your users for better performance</li>
+                            <li><strong>Compliance:</strong> Meet data residency and compliance requirements</li>
+                        </ul>
+                        
+                        <div class="practice-exercise">
+                            <h4>💡 Key Concept: AWS Shared Responsibility Model</h4>
+                            <p>AWS operates under a shared responsibility model where AWS is responsible for the security <strong>of</strong> the cloud, while customers are responsible for security <strong>in</strong> the cloud.</p>
+                            <ul>
+                                <li><strong>AWS Responsibility:</strong> Hardware, software, networking, and facilities</li>
+                                <li><strong>Customer Responsibility:</strong> Application security, data encryption, network configuration</li>
+                            </ul>
+                        </div>
+                    `
+                },
+                {
+                    title: "EC2 (Elastic Compute Cloud)",
+                    content: `
+                        <h3>What is EC2?</h3>
+                        <p>Amazon Elastic Compute Cloud (EC2) is a web service that provides secure, resizable compute capacity in the cloud. It's designed to make web-scale cloud computing easier for developers.</p>
+                        
+                        <h3>EC2 Key Concepts</h3>
+                        <h4>1. Instances</h4>
+                        <p>An EC2 instance is a virtual server in the AWS cloud. Think of it as a computer that you can rent and configure according to your needs.</p>
+                        
+                        <h4>2. Instance Types</h4>
+                        <p>EC2 offers various instance types optimized for different use cases:</p>
+                        <ul>
+                            <li><strong>General Purpose (M-series):</strong> Balanced compute, memory, and networking</li>
+                            <li><strong>Compute Optimized (C-series):</strong> High-performance processors</li>
+                            <li><strong>Memory Optimized (R-series):</strong> High memory-to-CPU ratio</li>
+                            <li><strong>Storage Optimized (I-series):</strong> High storage performance</li>
+                        </ul>
+                        
+                        <h4>3. Amazon Machine Images (AMIs)</h4>
+                        <p>An AMI is a template that contains the software configuration (operating system, application server, and applications) required to launch your instance.</p>
+                        
+                        <h3>EC2 Pricing Models</h3>
+                        <ul>
+                            <li><strong>On-Demand:</strong> Pay for compute capacity by the hour or second with no long-term commitments</li>
+                            <li><strong>Reserved Instances:</strong> Significant discount compared to On-Demand pricing for 1 or 3-year terms</li>
+                            <li><strong>Spot Instances:</strong> Request unused EC2 capacity at steep discounts (up to 90% off)</li>
+                            <li><strong>Dedicated Hosts:</strong> Physical EC2 server dedicated for your use</li>
+                        </ul>
+                        
+                        <div class="practice-exercise">
+                            <h4>🔧 Hands-On Exercise: Launching an EC2 Instance</h4>
+                            <p>Follow these steps to launch your first EC2 instance:</p>
+                            <ol>
+                                <li>Sign in to the AWS Management Console</li>
+                                <li>Navigate to EC2 service</li>
+                                <li>Click "Launch Instance"</li>
+                                <li>Choose an Amazon Machine Image (AMI)</li>
+                                <li>Select an instance type</li>
+                                <li>Configure instance details</li>
+                                <li>Add storage</li>
+                                <li>Add tags</li>
+                                <li>Configure security group</li>
+                                <li>Review and launch</li>
+                            </ol>
+                        </div>
+                        
+                        <h3>EC2 Best Practices</h3>
+                        <ul>
+                            <li><strong>Use the right instance type</strong> for your workload</li>
+                            <li><strong>Implement auto-scaling</strong> to handle traffic fluctuations</li>
+                            <li><strong>Use Elastic IP addresses</strong> for static public IPs</li>
+                            <li><strong>Monitor your instances</strong> using CloudWatch</li>
+                            <li><strong>Terminate unused instances</strong> to avoid unnecessary charges</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "S3 (Simple Storage Service)",
+                    content: `
+                        <h3>What is S3?</h3>
+                        <p>Amazon Simple Storage Service (S3) is an object storage service that offers industry-leading scalability, data availability, security, and performance. It's designed to store and retrieve any amount of data from anywhere on the web.</p>
+                        
+                        <h3>S3 Key Concepts</h3>
+                        <h4>1. Buckets</h4>
+                        <p>A bucket is a container for objects stored in Amazon S3. Every object is contained in a bucket. Bucket names must be globally unique across all AWS accounts.</p>
+                        
+                        <h4>2. Objects</h4>
+                        <p>Objects are the fundamental entities stored in Amazon S3. Objects consist of object data and metadata. The metadata is a set of name-value pairs that describe the object.</p>
+                        
+                        <h4>3. Keys</h4>
+                        <p>Within a bucket, an object is uniquely identified by a key (name) and a version ID (if versioning is enabled).</p>
+                        
+                        <h3>S3 Storage Classes</h3>
+                        <p>Amazon S3 offers different storage classes designed for different use cases:</p>
+                        
+                        <h4>1. S3 Standard</h4>
+                        <ul>
+                            <li>99.99% availability</li>
+                            <li>99.999999999% durability</li>
+                            <li>Designed for frequently accessed data</li>
+                            <li>Use cases: websites, content distribution, mobile applications</li>
+                        </ul>
+                        
+                        <h4>2. S3 Intelligent-Tiering</h4>
+                        <ul>
+                            <li>Automatically moves objects between tiers</li>
+                            <li>Optimizes costs without performance impact</li>
+                            <li>Ideal for data with unknown or changing access patterns</li>
+                        </ul>
+                        
+                        <h4>3. S3 Standard-IA (Infrequent Access)</h4>
+                        <ul>
+                            <li>Lower cost than S3 Standard</li>
+                            <li>99.9% availability</li>
+                            <li>Use cases: backups, disaster recovery, long-term storage</li>
+                        </ul>
+                        
+                        <h4>4. S3 Glacier</h4>
+                        <ul>
+                            <li>Lowest cost storage class</li>
+                            <li>Retrieval times from minutes to hours</li>
+                            <li>Use cases: long-term archival, compliance storage</li>
+                        </ul>
+                        
+                        <h3>S3 Security Features</h3>
+                        <ul>
+                            <li><strong>Server-Side Encryption:</strong> Automatically encrypts data at rest</li>
+                            <li><strong>Access Control Lists (ACLs):</strong> Grant basic read/write permissions</li>
+                            <li><strong>Bucket Policies:</strong> Define permissions at the bucket level</li>
+                            <li><strong>IAM Policies:</strong> Control access using AWS Identity and Access Management</li>
+                            <li><strong>Cross-Origin Resource Sharing (CORS):</strong> Control access from web browsers</li>
+                        </ul>
+                        
+                        <div class="practice-exercise">
+                            <h4>🔧 Hands-On Exercise: Creating an S3 Bucket</h4>
+                            <p>Follow these steps to create your first S3 bucket:</p>
+                            <ol>
+                                <li>Sign in to the AWS Management Console</li>
+                                <li>Navigate to S3 service</li>
+                                <li>Click "Create bucket"</li>
+                                <li>Enter a unique bucket name</li>
+                                <li>Select a region</li>
+                                <li>Configure options (versioning, tags, etc.)</li>
+                                <li>Set permissions (block public access)</li>
+                                <li>Review and create</li>
+                            </ol>
+                        </div>
+                        
+                        <h3>S3 Best Practices</h3>
+                        <ul>
+                            <li><strong>Use appropriate storage classes</strong> for your data access patterns</li>
+                            <li><strong>Enable versioning</strong> for important data</li>
+                            <li><strong>Set up lifecycle policies</strong> to automate storage class transitions</li>
+                            <li><strong>Use bucket policies</strong> to control access</li>
+                            <li><strong>Monitor costs</strong> using AWS Cost Explorer</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "VPC (Virtual Private Cloud)",
+                    content: `
+                        <h3>What is VPC?</h3>
+                        <p>Amazon Virtual Private Cloud (VPC) enables you to launch AWS resources into a virtual network that you've defined. This virtual network closely resembles a traditional network that you'd operate in your own data center, with the benefits of using AWS's scalable infrastructure.</p>
+                        
+                        <h3>VPC Key Components</h3>
+                        <h4>1. Subnets</h4>
+                        <p>A subnet is a range of IP addresses in your VPC. You can launch AWS resources into a specified subnet. Use a public subnet for resources that must be connected to the internet, and a private subnet for resources that won't be connected to the internet.</p>
+                        
+                        <h4>2. Route Tables</h4>
+                        <p>A route table contains a set of rules, called routes, that are used to determine where network traffic from your subnet or gateway is directed.</p>
+                        
+                        <h4>3. Internet Gateway</h4>
+                        <p>An internet gateway is a horizontally scaled, redundant, and highly available VPC component that allows communication between instances in your VPC and the internet.</p>
+                        
+                        <h4>4. NAT Gateway</h4>
+                        <p>A NAT gateway enables instances in a private subnet to connect to the internet or other AWS services, but prevents the internet from initiating a connection with those instances.</p>
+                        
+                        <h3>VPC Architecture Best Practices</h3>
+                        <h4>Multi-Tier Architecture</h4>
+                        <p>A typical VPC architecture includes:</p>
+                        <ul>
+                            <li><strong>Public Subnets:</strong> For load balancers and bastion hosts</li>
+                            <li><strong>Private Subnets:</strong> For application servers and databases</li>
+                            <li><strong>Database Subnets:</strong> For RDS instances and other databases</li>
+                        </ul>
+                        
+                        <h4>Security Groups and Network ACLs</h4>
+                        <p><strong>Security Groups:</strong> Act as a virtual firewall for your instance to control inbound and outbound traffic.</p>
+                        <p><strong>Network ACLs:</strong> Act as a firewall for controlling traffic in and out of one or more subnets.</p>
+                        
+                        <h3>VPC Peering</h3>
+                        <p>VPC peering allows you to route traffic between two VPCs using private IP addresses as if they were in the same network. This enables you to create a network of VPCs that can communicate with each other.</p>
+                        
+                        <div class="practice-exercise">
+                            <h4>🔧 Hands-On Exercise: Creating a VPC</h4>
+                            <p>Follow these steps to create a VPC with public and private subnets:</p>
+                            <ol>
+                                <li>Sign in to the AWS Management Console</li>
+                                <li>Navigate to VPC service</li>
+                                <li>Click "Create VPC"</li>
+                                <li>Choose "VPC and more" for automatic setup</li>
+                                <li>Configure VPC settings (name, CIDR block)</li>
+                                <li>Configure subnets (public and private)</li>
+                                <li>Configure route tables</li>
+                                <li>Review and create</li>
+                            </ol>
+                        </div>
+                        
+                        <h3>VPC Best Practices</h3>
+                        <ul>
+                            <li><strong>Use multiple Availability Zones</strong> for high availability</li>
+                            <li><strong>Implement least privilege access</strong> with security groups</li>
+                            <li><strong>Use private subnets</strong> for sensitive resources</li>
+                            <li><strong>Monitor network traffic</strong> with VPC Flow Logs</li>
+                            <li><strong>Plan your IP addressing</strong> carefully to avoid conflicts</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "IAM (Identity and Access Management)",
+                    content: `
+                        <h3>What is IAM?</h3>
+                        <p>AWS Identity and Access Management (IAM) is a web service that helps you securely control access to AWS resources. You use IAM to control who is authenticated (signed in) and authorized (has permissions) to use resources.</p>
+                        
+                        <h3>IAM Key Concepts</h3>
+                        <h4>1. Users</h4>
+                        <p>An IAM user is an entity that you create in AWS to represent the person or application that uses it to interact with AWS. A user in AWS consists of a name and credentials.</p>
+                        
+                        <h4>2. Groups</h4>
+                        <p>An IAM group is a collection of IAM users. You can use groups to specify permissions for multiple users, which can make it easier to manage the permissions for those users.</p>
+                        
+                        <h4>3. Roles</h4>
+                        <p>An IAM role is an IAM identity that you can create in your account that has specific permissions. An IAM role is similar to an IAM user, in that it is an AWS identity with permission policies that determine what the identity can and cannot do in AWS.</p>
+                        
+                        <h4>4. Policies</h4>
+                        <p>An IAM policy is a document that explicitly lists permissions. Policies can be attached to users, groups, and roles to control what actions they can perform on which AWS resources.</p>
+                        
+                        <h3>IAM Policy Types</h3>
+                        <h4>1. Managed Policies</h4>
+                        <p>Standalone identity-based policies that you can attach to multiple users, groups, and roles in your AWS account. AWS provides several managed policies for common use cases.</p>
+                        
+                        <h4>2. Inline Policies</h4>
+                        <p>Policies that you create and manage and embed directly into a single user, group, or role.</p>
+                        
+                        <h4>3. Resource-Based Policies</h4>
+                        <p>Policies that you attach to a resource such as an S3 bucket or an SQS queue.</p>
+                        
+                        <h3>IAM Best Practices</h3>
+                        <h4>1. Use the Principle of Least Privilege</h4>
+                        <p>Grant only the permissions required to perform a task. Start with a minimum set of permissions and grant additional permissions as necessary.</p>
+                        
+                        <h4>2. Use IAM Roles for EC2 Instances</h4>
+                        <p>Instead of storing AWS credentials on your EC2 instances, use IAM roles to provide temporary credentials to your applications.</p>
+                        
+                        <h4>3. Enable MFA for Root and IAM Users</h4>
+                        <p>Multi-factor authentication (MFA) adds an extra layer of protection on top of your user name and password.</p>
+                        
+                        <h4>4. Use Access Keys for Programmatic Access</h4>
+                        <p>Use access keys for programmatic access to AWS services. Never embed access keys in your code or share them publicly.</p>
+                        
+                        <div class="practice-exercise">
+                            <h4>🔧 Hands-On Exercise: Creating an IAM User</h4>
+                            <p>Follow these steps to create an IAM user with appropriate permissions:</p>
+                            <ol>
+                                <li>Sign in to the AWS Management Console</li>
+                                <li>Navigate to IAM service</li>
+                                <li>Click "Users" and then "Add user"</li>
+                                <li>Enter user details (name, access type)</li>
+                                <li>Set permissions (attach policies or create custom)</li>
+                                <li>Add tags (optional)</li>
+                                <li>Review and create</li>
+                                <li>Download or save the access credentials</li>
+                            </ol>
+                        </div>
+                        
+                        <h3>IAM Security Features</h3>
+                        <ul>
+                            <li><strong>Password Policy:</strong> Enforce strong passwords and regular rotation</li>
+                            <li><strong>Access Key Rotation:</strong> Regularly rotate access keys</li>
+                            <li><strong>Credential Report:</strong> Download a report of all users and their credential status</li>
+                            <li><strong>IAM Access Analyzer:</strong> Identify unused permissions and resources</li>
+                            <li><strong>Service Control Policies (SCPs):</strong> Control permissions across multiple accounts</li>
+                        </ul>
+                        
+                        <h3>Common IAM Use Cases</h3>
+                        <ul>
+                            <li><strong>Application Access:</strong> Grant applications access to AWS services</li>
+                            <li><strong>Cross-Account Access:</strong> Allow users from one account to access resources in another</li>
+                            <li><strong>Federated Access:</strong> Use existing identity providers (Active Directory, SAML)</li>
+                            <li><strong>Emergency Access:</strong> Create break-glass procedures for emergency situations</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "AWS Core Services Integration",
+                    content: `
+                        <h3>How Core Services Work Together</h3>
+                        <p>Understanding how AWS core services integrate is crucial for building scalable and secure applications. Let's explore how EC2, S3, VPC, and IAM work together in a typical web application architecture.</p>
+                        
+                        <h3>Typical Web Application Architecture</h3>
+                        <h4>1. User Authentication Flow</h4>
+                        <p>When a user accesses your application:</p>
+                        <ol>
+                            <li>User credentials are validated against IAM policies</li>
+                            <li>If authenticated, user receives temporary credentials</li>
+                            <li>User can access authorized AWS resources</li>
+                        </ol>
+                        
+                        <h4>2. Application Deployment</h4>
+                        <p>A typical deployment involves:</p>
+                        <ul>
+                            <li><strong>VPC:</strong> Provides network isolation and security</li>
+                            <li><strong>EC2:</strong> Hosts the application servers</li>
+                            <li><strong>S3:</strong> Stores static assets (images, CSS, JavaScript)</li>
+                            <li><strong>IAM:</strong> Manages access to all resources</li>
+                        </ul>
+                        
+                        <h3>Security Best Practices</h3>
+                        <h4>1. Network Security</h4>
+                        <ul>
+                            <li>Use private subnets for application servers</li>
+                            <li>Implement security groups with minimal required access</li>
+                            <li>Use NAT gateways for outbound internet access</li>
+                            <li>Enable VPC Flow Logs for network monitoring</li>
+                        </ul>
+                        
+                        <h4>2. Data Security</h4>
+                        <ul>
+                            <li>Encrypt data at rest using S3 server-side encryption</li>
+                            <li>Use IAM roles for EC2 instances instead of access keys</li>
+                            <li>Implement least privilege access policies</li>
+                            <li>Regularly rotate access keys and credentials</li>
+                        </ul>
+                        
+                        <h4>3. Monitoring and Logging</h4>
+                        <ul>
+                            <li>Enable CloudTrail for API call logging</li>
+                            <li>Use CloudWatch for resource monitoring</li>
+                            <li>Set up alerts for unusual activity</li>
+                            <li>Regularly review IAM access reports</li>
+                        </ul>
+                        
+                        <div class="practice-exercise">
+                            <h4>🎯 Real-World Scenario: E-commerce Application</h4>
+                            <p>Consider an e-commerce application with the following requirements:</p>
+                            <ul>
+                                <li>User authentication and authorization</li>
+                                <li>Product catalog with images</li>
+                                <li>Secure payment processing</li>
+                                <li>Order management</li>
+                                <li>High availability and scalability</li>
+                            </ul>
+                            
+                            <p><strong>Architecture Design:</strong></p>
+                            <ol>
+                                <li><strong>VPC:</strong> Create public and private subnets across multiple AZs</li>
+                                <li><strong>EC2:</strong> Deploy web servers in private subnets with auto-scaling</li>
+                                <li><strong>S3:</strong> Store product images and static website content</li>
+                                <li><strong>IAM:</strong> Create roles for EC2 instances and user access</li>
+                                <li><strong>Load Balancer:</strong> Distribute traffic across multiple instances</li>
+                            </ol>
+                        </div>
+                        
+                        <h3>Cost Optimization Strategies</h3>
+                        <ul>
+                            <li><strong>Right-size EC2 instances</strong> based on actual usage</li>
+                            <li><strong>Use S3 lifecycle policies</strong> to move data to cheaper storage classes</li>
+                            <li><strong>Implement auto-scaling</strong> to handle traffic fluctuations</li>
+                            <li><strong>Use reserved instances</strong> for predictable workloads</li>
+                            <li><strong>Monitor costs</strong> using AWS Cost Explorer and set up billing alerts</li>
+                        </ul>
+                        
+                        <h3>Next Steps in Your AWS Journey</h3>
+                        <p>After mastering these core services, consider exploring:</p>
+                        <ul>
+                            <li><strong>Database Services:</strong> RDS, DynamoDB, ElastiCache</li>
+                            <li><strong>Application Services:</strong> Lambda, API Gateway, SQS</li>
+                            <li><strong>Security Services:</strong> CloudTrail, Config, GuardDuty</li>
+                            <li><strong>Management Tools:</strong> CloudFormation, Systems Manager</li>
+                            <li><strong>Monitoring:</strong> CloudWatch, X-Ray, CloudTrail</li>
+                        </ul>
+                        
+                        <div class="practice-exercise">
+                            <h4>🚀 Certification Path</h4>
+                            <p>Consider pursuing AWS certifications to validate your knowledge:</p>
+                            <ol>
+                                <li><strong>AWS Certified Cloud Practitioner</strong> - Entry-level certification</li>
+                                <li><strong>AWS Certified Solutions Architect - Associate</strong> - Design and deploy systems</li>
+                                <li><strong>AWS Certified Developer - Associate</strong> - Develop and maintain applications</li>
+                                <li><strong>AWS Certified SysOps Administrator - Associate</strong> - Deploy, manage, and operate systems</li>
+                            </ol>
+                        </div>
+                    `
+                }
+            ]
+        },
         quiz: {
             title: "AWS Core Services Quiz",
             description: "Test your AWS knowledge",
@@ -727,9 +1141,150 @@ area3 = calculate_area(width=4, length=6)  # Named arguments
     },
     "azure_basics": {
         title: "Azure Fundamentals",
-        videoId: "NKEPWdQ7W_Y",
+        videoId: "NKEFWyqJ5XA", // 使用freeCodeCamp官方课程视频ID
         references: [{ text: "Azure Fundamentals Learning Path", url: "https://docs.microsoft.com/en-us/learn/paths/azure-fundamentals/" }],
         topics: ["Azure Core Architectural Components", "Azure Core Services", "Azure Security, Privacy, Compliance, and Trust"],
+        readingContent: {
+            estimatedReadingTime: 35, // 预计阅读时间（分钟）
+            sections: [
+                {
+                    title: "Introduction to Microsoft Azure",
+                    content: `
+                        <h3>What is Microsoft Azure?</h3>
+                        <p>Microsoft Azure is a leading cloud computing platform that provides a wide range of services including computing, storage, networking, databases, analytics, and artificial intelligence. Azure enables organizations to build, deploy, and manage applications through Microsoft-managed data centers worldwide.</p>
+                        <h3>Why Learn Azure?</h3>
+                        <ul>
+                            <li><strong>Global Reach:</strong> Azure has data centers in more than 60 regions worldwide.</li>
+                            <li><strong>Enterprise Adoption:</strong> Used by 95% of Fortune 500 companies.</li>
+                            <li><strong>Hybrid Capability:</strong> Seamless integration with on-premises environments.</li>
+                            <li><strong>Security & Compliance:</strong> Over 90 compliance certifications.</li>
+                            <li><strong>Career Growth:</strong> High demand for Azure-certified professionals.</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "Azure Global Infrastructure",
+                    content: `
+                        <h3>Azure Regions and Availability Zones</h3>
+                        <p>Azure is available in more global regions than any other cloud provider. Each region is a set of data centers deployed within a specific geographic area, providing redundancy and availability.</p>
+                        <ul>
+                            <li><strong>Region:</strong> A geographical area containing one or more data centers.</li>
+                            <li><strong>Availability Zone:</strong> Physically separate locations within a region, each with independent power, cooling, and networking.</li>
+                        </ul>
+                        <h3>Benefits of Azure's Global Infrastructure</h3>
+                        <ul>
+                            <li>High availability and disaster recovery</li>
+                            <li>Low latency for global users</li>
+                            <li>Data residency and compliance</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>💡 Exercise: Explore Azure Regions</h4>
+                            <p>Visit <a href="https://azure.microsoft.com/en-us/explore/global-infrastructure/regions/" target="_blank">Azure Global Infrastructure</a> to see all available regions and their services.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Core Azure Services Overview",
+                    content: `
+                        <h3>1. Compute Services</h3>
+                        <ul>
+                            <li><strong>Azure Virtual Machines (VMs):</strong> Scalable, on-demand computing resources.</li>
+                            <li><strong>App Services:</strong> Managed platform for web apps, REST APIs, and mobile backends.</li>
+                            <li><strong>Azure Functions:</strong> Serverless compute for event-driven workloads.</li>
+                        </ul>
+                        <h3>2. Storage Services</h3>
+                        <ul>
+                            <li><strong>Blob Storage:</strong> Object storage for unstructured data.</li>
+                            <li><strong>File Storage:</strong> Managed file shares in the cloud.</li>
+                            <li><strong>Disk Storage:</strong> Persistent, high-performance disks for VMs.</li>
+                        </ul>
+                        <h3>3. Networking Services</h3>
+                        <ul>
+                            <li><strong>Virtual Network (VNet):</strong> Private network for Azure resources.</li>
+                            <li><strong>Load Balancer:</strong> Distributes incoming traffic for high availability.</li>
+                            <li><strong>VPN Gateway:</strong> Secure site-to-site connectivity.</li>
+                        </ul>
+                        <h3>4. Security & Identity</h3>
+                        <ul>
+                            <li><strong>Azure Active Directory (AD):</strong> Identity and access management.</li>
+                            <li><strong>Key Vault:</strong> Securely store and manage keys, secrets, and certificates.</li>
+                            <li><strong>Security Center:</strong> Unified security management and threat protection.</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "Azure Resource Management & Pricing",
+                    content: `
+                        <h3>Resource Groups</h3>
+                        <p>A resource group is a container that holds related resources for an Azure solution. It enables easier management, monitoring, and access control.</p>
+                        <h3>Azure Portal, CLI, and PowerShell</h3>
+                        <ul>
+                            <li><strong>Azure Portal:</strong> Web-based UI for managing Azure resources.</li>
+                            <li><strong>Azure CLI:</strong> Command-line tool for managing Azure resources.</li>
+                            <li><strong>Azure PowerShell:</strong> PowerShell module for Azure management.</li>
+                        </ul>
+                        <h3>Pricing and Cost Management</h3>
+                        <ul>
+                            <li><strong>Pay-as-you-go:</strong> Only pay for what you use.</li>
+                            <li><strong>Azure Pricing Calculator:</strong> Estimate costs for your solutions.</li>
+                            <li><strong>Cost Management + Billing:</strong> Monitor, allocate, and optimize cloud spend.</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>🔧 Exercise: Estimate Azure Costs</h4>
+                            <p>Try the <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank">Azure Pricing Calculator</a> to estimate the cost of running a virtual machine and storage.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Security, Privacy, Compliance, and Trust",
+                    content: `
+                        <h3>Azure Security Features</h3>
+                        <ul>
+                            <li><strong>Defense in Depth:</strong> Multiple layers of security controls.</li>
+                            <li><strong>Network Security Groups (NSG):</strong> Control inbound/outbound traffic.</li>
+                            <li><strong>Azure Firewall:</strong> Managed, cloud-based network security service.</li>
+                            <li><strong>Azure DDoS Protection:</strong> Protects against distributed denial-of-service attacks.</li>
+                        </ul>
+                        <h3>Compliance and Privacy</h3>
+                        <ul>
+                            <li>Over 90 compliance certifications (ISO, GDPR, HIPAA, etc.)</li>
+                            <li>Data residency options for regulatory requirements</li>
+                            <li>Transparent privacy policies and data handling</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>🔒 Exercise: Review Azure Security Center</h4>
+                            <p>Log in to the Azure Portal and explore the Security Center dashboard to review security recommendations for your resources.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Hands-On Practice & Best Practices",
+                    content: `
+                        <h3>Hands-On Practice</h3>
+                        <ol>
+                            <li>Create a free Azure account and explore the portal.</li>
+                            <li>Deploy a virtual machine and connect via RDP/SSH.</li>
+                            <li>Set up a storage account and upload/download files.</li>
+                            <li>Create a resource group and organize resources.</li>
+                            <li>Configure a virtual network and subnet.</li>
+                        </ol>
+                        <h3>Best Practices</h3>
+                        <ul>
+                            <li>Use resource groups to organize and manage resources.</li>
+                            <li>Apply tags for cost tracking and automation.</li>
+                            <li>Enable multi-factor authentication (MFA) for all users.</li>
+                            <li>Monitor usage and set up cost alerts.</li>
+                            <li>Regularly review security recommendations in Security Center.</li>
+                        </ul>
+                        <h3>Next Steps</h3>
+                        <ul>
+                            <li>Explore more on <a href="https://docs.microsoft.com/en-us/learn/azure/" target="_blank">Microsoft Learn</a></li>
+                            <li>Consider preparing for the AZ-900 certification exam</li>
+                        </ul>
+                    `
+                }
+            ]
+        },
         quiz: {
             title: "Azure Fundamentals Quiz",
             description: "Test your Azure knowledge",
@@ -806,9 +1361,149 @@ area3 = calculate_area(width=4, length=6)  # Named arguments
     },
     "python_data_structures": {
         title: "Data Structures in Python",
-        videoId: "R_ip9Sw2G2A",
+        videoId: "R-HLU9Fl5ug", // 使用Corey Schafer频道视频ID
         references: [{ text: "Python Data Structures - GeeksforGeeks", url: "https://www.geeksforgeeks.org/python-data-structures/" }],
         topics: ["Advanced Lists", "Tuples In-depth", "Sets", "Dictionaries Advanced"],
+        readingContent: {
+            estimatedReadingTime: 30, // 预计阅读时间（分钟）
+            sections: [
+                {
+                    title: "Advanced Lists",
+                    content: `
+                        <h3>What is a List?</h3>
+                        <p>Lists are ordered, mutable collections of items. They can store elements of different types and support a wide range of operations.</p>
+                        <pre><code>
+fruits = ["apple", "banana", "cherry"]
+fruits.append("orange")
+fruits[1] = "blueberry"
+print(fruits)  # ['apple', 'blueberry', 'cherry', 'orange']
+                        </code></pre>
+                        <h4>List Comprehensions</h4>
+                        <pre><code>
+squares = [x**2 for x in range(5)]  # [0, 1, 4, 9, 16]
+                        </code></pre>
+                        <h4>Common List Methods</h4>
+                        <ul>
+                            <li><code>append()</code> - Add an item to the end</li>
+                            <li><code>insert()</code> - Insert at a specific index</li>
+                            <li><code>remove()</code> - Remove first occurrence of a value</li>
+                            <li><code>pop()</code> - Remove and return item at index</li>
+                            <li><code>sort()</code> - Sort the list in place</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: List Operations</h4>
+                            <p>Write a function that removes duplicates from a list and returns a sorted version.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Tuples In-depth",
+                    content: `
+                        <h3>What is a Tuple?</h3>
+                        <p>Tuples are ordered, immutable collections. Once created, their contents cannot be changed.</p>
+                        <pre><code>
+point = (3, 4)
+colors = ("red", "green", "blue")
+                        </code></pre>
+                        <h4>Tuple Unpacking</h4>
+                        <pre><code>
+x, y = point
+print(x, y)  # 3 4
+                        </code></pre>
+                        <h4>When to Use Tuples?</h4>
+                        <ul>
+                            <li>Data that should not change</li>
+                            <li>As dictionary keys</li>
+                            <li>Returning multiple values from a function</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Tuple Packing & Unpacking</h4>
+                            <p>Write a function that returns both the min and max of a list as a tuple.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Sets",
+                    content: `
+                        <h3>What is a Set?</h3>
+                        <p>Sets are unordered collections of unique elements. They are useful for membership tests and removing duplicates.</p>
+                        <pre><code>
+nums = {1, 2, 3, 2, 1}
+print(nums)  # {1, 2, 3}
+                        </code></pre>
+                        <h4>Set Operations</h4>
+                        <pre><code>
+a = {1, 2, 3}
+b = {3, 4, 5}
+print(a | b)  # Union: {1, 2, 3, 4, 5}
+print(a & b)  # Intersection: {3}
+print(a - b)  # Difference: {1, 2}
+                        </code></pre>
+                        <h4>Common Use Cases</h4>
+                        <ul>
+                            <li>Removing duplicates from a list</li>
+                            <li>Fast membership testing</li>
+                            <li>Mathematical set operations</li>
+                        </ul>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Set Operations</h4>
+                            <p>Given two lists, return their intersection as a set.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Dictionaries Advanced",
+                    content: `
+                        <h3>What is a Dictionary?</h3>
+                        <p>Dictionaries are unordered collections of key-value pairs. Keys must be unique and immutable.</p>
+                        <pre><code>
+student = {"name": "Alice", "age": 20, "major": "CS"}
+student["age"] = 21
+print(student["name"])
+                        </code></pre>
+                        <h4>Dictionary Methods</h4>
+                        <ul>
+                            <li><code>get()</code> - Safe value retrieval</li>
+                            <li><code>keys()</code>, <code>values()</code>, <code>items()</code> - Iteration</li>
+                            <li><code>update()</code> - Merge another dict</li>
+                            <li><code>pop()</code> - Remove by key</li>
+                        </ul>
+                        <h4>Dictionary Comprehensions</h4>
+                        <pre><code>
+squares = {x: x**2 for x in range(5)}  # {0: 0, 1: 1, 2: 4, 3: 9, 4: 16}
+                        </code></pre>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Dictionary Comprehension</h4>
+                            <p>Write a dictionary comprehension that maps each word in a list to its length.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Practice & Best Practices",
+                    content: `
+                        <h3>Hands-On Practice</h3>
+                        <ol>
+                            <li>Write a function to count the frequency of each element in a list using a dictionary.</li>
+                            <li>Given a list of tuples, convert it to a dictionary.</li>
+                            <li>Write a function to find the union and intersection of two sets.</li>
+                        </ol>
+                        <h3>Best Practices</h3>
+                        <ul>
+                            <li>Choose the right data structure for your use case</li>
+                            <li>Use comprehensions for concise code</li>
+                            <li>Remember mutability: lists/sets/dicts are mutable, tuples are immutable</li>
+                            <li>Use sets for fast membership tests</li>
+                            <li>Use dict.get() to avoid KeyError</li>
+                        </ul>
+                        <h3>Further Reading</h3>
+                        <ul>
+                            <li><a href="https://docs.python.org/3/tutorial/datastructures.html" target="_blank">Python Official Data Structures Tutorial</a></li>
+                            <li><a href="https://realpython.com/python-data-structures/" target="_blank">Real Python: Data Structures</a></li>
+                        </ul>
+                    `
+                }
+            ]
+        },
         quiz: {
             title: "Python Data Structures Quiz",
             description: "Test your data structures knowledge",
@@ -888,6 +1583,164 @@ area3 = calculate_area(width=4, length=6)  # Named arguments
         videoId: "Ej_02ICOIgs",
         references: [{ text: "Python OOP Tutorial - Real Python", url: "https://realpython.com/python3-object-oriented-programming/" }],
         topics: ["Classes and Objects", "Inheritance", "Polymorphism", "Encapsulation"],
+        readingContent: {
+            estimatedReadingTime: 35, // 预计阅读时间（分钟）
+            sections: [
+                {
+                    title: "Introduction to Object-Oriented Programming",
+                    content: `
+                        <h3>What is OOP?</h3>
+                        <p>Object-Oriented Programming (OOP) is a programming paradigm based on the concept of "objects", which can contain data and code to manipulate that data. OOP helps organize complex programs, promotes code reuse, and models real-world entities.</p>
+                        <ul>
+                            <li><strong>Encapsulation:</strong> Bundling data and methods together</li>
+                            <li><strong>Inheritance:</strong> Creating new classes from existing ones</li>
+                            <li><strong>Polymorphism:</strong> Using a unified interface for different data types</li>
+                            <li><strong>Abstraction:</strong> Hiding complex details and showing only essentials</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "Classes and Objects",
+                    content: `
+                        <h3>Defining a Class</h3>
+                        <pre><code>
+class Dog:
+    def __init__(self, name):
+        self.name = name
+    def bark(self):
+        print(f"{self.name} says woof!")
+                        </code></pre>
+                        <h3>Creating Objects</h3>
+                        <pre><code>
+my_dog = Dog("Buddy")
+my_dog.bark()  # Buddy says woof!
+                        </code></pre>
+                        <h4>Understanding self</h4>
+                        <p><code>self</code> refers to the instance of the class and is used to access attributes and methods.</p>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Create a Class</h4>
+                            <p>Define a <code>Car</code> class with attributes <code>brand</code> and <code>year</code>, and a method <code>drive()</code> that prints a message.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Attributes and Methods",
+                    content: `
+                        <h3>Instance Attributes</h3>
+                        <pre><code>
+class Student:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+                        </code></pre>
+                        <h3>Class Attributes</h3>
+                        <pre><code>
+class Circle:
+    pi = 3.14  # class attribute
+    def __init__(self, radius):
+        self.radius = radius
+                        </code></pre>
+                        <h3>Instance Methods</h3>
+                        <pre><code>
+    def area(self):
+        return Circle.pi * self.radius ** 2
+                        </code></pre>
+                        <h3>Static and Class Methods</h3>
+                        <pre><code>
+class Math:
+    @staticmethod
+    def add(a, b):
+        return a + b
+    @classmethod
+    def description(cls):
+        return "Math operations"
+                        </code></pre>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Attributes & Methods</h4>
+                            <p>Write a <code>Book</code> class with a class attribute <code>category</code> and an instance method <code>info()</code> that prints the book's details.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Inheritance and Polymorphism",
+                    content: `
+                        <h3>Inheritance</h3>
+                        <pre><code>
+class Animal:
+    def speak(self):
+        print("Animal speaks")
+class Cat(Animal):
+    def speak(self):
+        print("Meow")
+                        </code></pre>
+                        <h3>Polymorphism</h3>
+                        <pre><code>
+animals = [Dog("Buddy"), Cat()]
+for animal in animals:
+    animal.speak()  # Each calls its own speak()
+                        </code></pre>
+                        <h4>super()</h4>
+                        <pre><code>
+class Bird(Animal):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+                        </code></pre>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Inheritance</h4>
+                            <p>Define a <code>Shape</code> base class and a <code>Rectangle</code> subclass that calculates area.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Encapsulation and Private Members",
+                    content: `
+                        <h3>Encapsulation</h3>
+                        <p>Encapsulation restricts direct access to some of an object's components, which is a means of preventing accidental interference and misuse.</p>
+                        <h3>Private Attributes</h3>
+                        <pre><code>
+class BankAccount:
+    def __init__(self, balance):
+        self.__balance = balance  # private attribute
+    def deposit(self, amount):
+        self.__balance += amount
+    def get_balance(self):
+        return self.__balance
+                        </code></pre>
+                        <h4>Name Mangling</h4>
+                        <p>Attributes with double underscores (e.g., <code>__balance</code>) are name-mangled to prevent direct access.</p>
+                        <div class="practice-exercise">
+                            <h4>💡 Practice: Encapsulation</h4>
+                            <p>Write a class <code>Person</code> with a private attribute <code>__ssn</code> and a method to safely access it.</p>
+                        </div>
+                    `
+                },
+                {
+                    title: "Practice & Best Practices",
+                    content: `
+                        <h3>Hands-On Practice</h3>
+                        <ol>
+                            <li>Write a class <code>Employee</code> with attributes <code>name</code> and <code>salary</code>, and a method to give a raise.</li>
+                            <li>Implement a class hierarchy for vehicles (e.g., <code>Vehicle</code>, <code>Car</code>, <code>Truck</code>).</li>
+                            <li>Write a class with both static and class methods.</li>
+                        </ol>
+                        <h3>Best Practices</h3>
+                        <ul>
+                            <li>Use meaningful class and method names</li>
+                            <li>Keep methods short and focused</li>
+                            <li>Use encapsulation to protect data</li>
+                            <li>Favor composition over inheritance when possible</li>
+                            <li>Document your classes and methods</li>
+                        </ul>
+                        <h3>Further Reading</h3>
+                        <ul>
+                            <li><a href="https://docs.python.org/3/tutorial/classes.html" target="_blank">Python Official Classes Tutorial</a></li>
+                            <li><a href="https://realpython.com/python3-object-oriented-programming/" target="_blank">Real Python: OOP in Python</a></li>
+                        </ul>
+                    `
+                }
+            ]
+        },
         quiz: {
             title: "Object-Oriented Python Quiz",
             description: "Test your OOP knowledge",

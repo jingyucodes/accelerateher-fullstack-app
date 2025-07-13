@@ -728,15 +728,14 @@ const ModulePage = () => {
                             <Quiz
                                 moduleId={moduleId}
                                 quizData={moduleInfo.quiz}
-                                onQuizComplete={(result) => {
+                                onQuizComplete={async (result) => {
+                                    setShowQuiz(false);
+                                    // 强制刷新用户profile，确保分数和通过状态同步
+                                    if (userProfile) {
+                                        await fetchUserProfile(userProfile._id || userProfile.user_id);
+                                    }
                                     setQuizCompleted(true);
                                     setQuizScore(result.score);
-                                    setShowQuiz(false);
-
-                                    // Refresh user profile to get updated analytics
-                                    if (userProfile) {
-                                        fetchUserProfile(userProfile._id || userProfile.user_id);
-                                    }
                                 }}
                                 onQuizClose={() => setShowQuiz(false)}
                                 isAuthenticated={isAuthenticated}

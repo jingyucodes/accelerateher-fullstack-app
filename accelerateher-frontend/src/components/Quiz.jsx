@@ -154,69 +154,68 @@ const Quiz = ({
 
     if (showResults) {
         return (
-            <div className="quiz-container">
-                <div className="quiz-header ubs-title-bar">
-                    <div className="ubs-title-line"></div>
-                    <div>
-                        <h2 className="ubs-title">{quizData.title}</h2>
-                        <p className="ubs-desc">{quizData.description}</p>
-                    </div>
+            <div className="quiz-result-card">
+                <div className="quiz-result-header">
+                    <span className="quiz-title">{quizData.title}</span>
                     <button className="close-btn" onClick={onQuizClose}>×</button>
                 </div>
-
-                <div className="quiz-results">
-                    <div className={`result-card ${isPassed ? 'passed' : 'failed'}`}>
-                        <div className="result-icon">
-                            {isPassed ? '🎉' : '📚'}
-                        </div>
-                        <h3>{isPassed ? 'Congratulations!' : 'Keep Learning!'}</h3>
-                        <div className="score-display">
-                            <span className="score-number">{score}%</span>
-                            <span className="score-label">Your Score</span>
-                        </div>
-                        <p className="result-message">
-                            {isPassed
-                                ? `You passed the quiz! You scored ${score}% (minimum required: ${quizData.passingScore}%)`
-                                : `You scored ${score}%. You need at least ${quizData.passingScore}% to pass.`
-                            }
-                        </p>
-                    </div>
-
-                    <div className="detailed-results">
-                        <h4>Question Breakdown</h4>
-                        {quizData.questions.map((question, index) => {
-                            const userAnswer = answers[question.id];
-                            const isCorrect = userAnswer === question.correctAnswer;
-
-                            return (
-                                <div key={question.id} className={`question-result ${isCorrect ? 'correct' : 'incorrect'}`}>
-                                    <div className="question-header">
-                                        <span className="question-number">Q{index + 1}</span>
-                                        <span className="question-status">
-                                            {isCorrect ? '✅ Correct' : '❌ Incorrect'}
-                                        </span>
-                                    </div>
-                                    <p className="question-text">{question.question}</p>
-                                    {!isCorrect && (
-                                        <div className="explanation">
-                                            <strong>Explanation:</strong> {question.explanation}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="quiz-actions">
-                        {!isPassed && (
-                            <button className="secondary-btn" onClick={handleRetake}>
-                                🔄 Retake Quiz
-                            </button>
+                <div className="quiz-result-body">
+                    <div className="congrats-row">
+                        {isPassed ? (
+                            <>
+                                <span className="congrats-icon">🎉</span>
+                                <span className="congrats-text">Congratulations!</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="congrats-icon">📚</span>
+                                <span className="congrats-text failed">Keep Learning!</span>
+                            </>
                         )}
-                        <button className="primary-btn" onClick={handleContinue}>
-                            {isPassed ? '🎯 Continue Learning' : '📚 Back to Module'}
-                        </button>
                     </div>
+                    <div className="score-row">
+                        <span className="score-number">{score}%</span>
+                        <span className={`score-status ${isPassed ? 'passed' : 'failed'}`}>{isPassed ? 'Passed' : 'Failed'}</span>
+                    </div>
+                    <div className="score-desc">
+                        {isPassed
+                            ? `You passed the quiz! (Minimum required: ${quizData.passingScore}%)`
+                            : `You scored ${score}%. You need at least ${quizData.passingScore}% to pass.`
+                        }
+                    </div>
+                </div>
+                <div className="quiz-breakdown">
+                    <h4>Question Breakdown</h4>
+                    {quizData.questions.map((question, index) => {
+                        const userAnswer = answers[question.id];
+                        const isCorrect = userAnswer === question.correctAnswer;
+                        return (
+                            <div key={question.id} className={`question-result ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                <div className="question-header">
+                                    <span className="question-number">Q{index + 1}</span>
+                                    <span className="question-status">
+                                        {isCorrect ? '✅ Correct' : '❌ Incorrect'}
+                                    </span>
+                                </div>
+                                <p className="question-text">{question.question}</p>
+                                {!isCorrect && (
+                                    <div className="explanation">
+                                        <strong>Explanation:</strong> {question.explanation}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="quiz-actions">
+                    {!isPassed && (
+                        <button className="secondary-btn" onClick={handleRetake}>
+                            🔄 Retake Quiz
+                        </button>
+                    )}
+                    <button className="primary-btn" onClick={handleContinue}>
+                        {isPassed ? '🎯 Continue Learning' : '📚 Back to Module'}
+                    </button>
                 </div>
             </div>
         );

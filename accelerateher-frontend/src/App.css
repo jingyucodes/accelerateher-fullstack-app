@@ -633,3 +633,140 @@
   /* 红色渐变，与主色调一致 */
   transition: width 0.3s ease;
 }
+
+/* Quiz Result Card Redesign */
+.quiz-result-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.08);
+  padding: 2rem 2.5rem;
+  max-width: 480px;
+  margin: 2rem auto;
+  border-top: 5px solid #e53935;
+}
+
+.quiz-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e53935;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #e53935;
+}
+
+.quiz-result-body {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.congrats-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #e53935;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.congrats-icon {
+  font-size: 2rem;
+  margin-right: 0.5rem;
+}
+
+.congrats-text.failed {
+  color: #e53935;
+  font-weight: bold;
+}
+
+.score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.score-number {
+  font-size: 2.5rem;
+  color: #222;
+}
+
+.score-status.passed {
+  color: #43a047;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.score-status.failed {
+  color: #e53935;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.score-desc {
+  color: #888;
+  margin-top: 0.5rem;
+  font-size: 1rem;
+}
+
+.quiz-breakdown {
+  margin-top: 2rem;
+}
+
+.question-result {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #e0e0e0;
+}
+
+.question-result.correct {
+  border-left: 4px solid #43a047;
+}
+
+.question-result.incorrect {
+  border-left: 4px solid #e53935;
+}
+
+.question-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+.question-number {
+  color: #e53935;
+}
+
+.question-status {
+  font-size: 1rem;
+}
+
+.explanation {
+  color: #e53935;
+  font-size: 0.95rem;
+  margin-top: 0.3rem;
+}
+
+.quiz-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.question-header .question-number {
+  color: #fff !important;
+}
